@@ -28,7 +28,7 @@ i) Why make this app available on Github? Having access to the source code means
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) 
 
-![LinkedIn](https://www.linkedin.com/in/craig-guarraci/)
+[LinkedIn](https://www.linkedin.com/in/craig-guarraci/)
 
 
 # Getting Started
@@ -38,7 +38,7 @@ i) Why make this app available on Github? Having access to the source code means
 ...
 
 ## Installation
-Create a Python virtual environment/ create new project subdir? 
+Create a Python virtual environment/create new project subdir? 
 
 > TBD...
 
@@ -48,7 +48,7 @@ Clone the repo
 
 Get required Python packages
 
-> ...
+> ...my requirements.txt
 
 Get Free JobsPipe API key [here](https://jobspipe.dev/pricing)
 
@@ -70,13 +70,37 @@ Note the help "?" bubble next to each job hunting task that will give more info 
 
 When done, choose the "Launch weekly plan" button.
 
-Log your progress on the "Active Job Search Dashboard". Under the tab "Job Search & Resume Tailor", any positions that you apply for (ex: "Did you apply for this position?" --> YES) will **automatically increment** the number of Applications in the "Active Job Search Dashboard".
+Log your progress on the "Active Job Search Dashboard". Under the tab "Job Search & Resume Tailor", any positions that you apply for (ex: "Did you apply for this position?", if you choose "YES") will **automatically increment** the number of Applications in the "Active Job Search Dashboard".
 
 ### Job Search Plan --> Weekly Plan Advisor
-TODO
+
+After using the AI Job Center for a few weeks and adding notes to the Job Application Tracker Notes column, the app has more context to give you suggestions on your overall job hunting approach. In the Job Search Plan tab, simply choose "Analyze Application Tracker & Get Advice" and it will pass your job application tracker and current weekly plan to AI to analyze. The results will come after the header "Strategic Job Search Insights as of YYYY-MM-DD..."
+
+The Weekly Plan Advisor results will remain until you choose to run it again, which is why the last run date is provided.
 
 ### Job Search & Resume Tailor
-TODO
+
+1. Select Active Resume
+
+The resume can be in .PDF, .DOCX or .TXT formats. You may have several resumes for slightly different positions you are pursuing. Each one can be uploaded and selected in the drop-down later. This step just puts the resume in the to root folder for this project with the filename unchanged.
+
+**Note:** The resume you choose here will be sent to Gemini. It's suggested to remove any personally identifiable information (PII) before submitting it (name, email, Linked In URL, phone number, etc.).
+
+To try this feature, use the sample resume in .\resume\Sample_resume_my_Program_Mgt_example_v3.txt
+
+You can see an example of the Resume Tailor results previously run against the sample resume by viewing the file at: .\resume\Sample_Tailored_Resume_Output.txt. Note the critique sections at the top, bottom and the "[UPDATED]" text to show which sections AI updated.
+
+2. Select Job Source Query. 
+
+You may be pursuing several different job titles, thus a different job query will be needed to retrieve the latest jobs for each job title. Also, there may be other  preferences  between positions (ex: location, seniority, etc.). 
+
+Select the JobsPipe YAML file in .\config\query.yaml.
+
+A single YAML file can contain multiple job queries. In the drop-down labeled "Choose Job to Query" select a query from that YAML file that matches the resume you just uploaded (ex: I uploaded a program manager resume, so choose the "program manager" query).
+
+You can choose the expand box "View Selected Job Query" to view that query. 
+
+Lastly, choose the shiny red button "Find Job Matches with AI". This will... 
 
 ### Job Application Tracker
 TODO
