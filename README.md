@@ -34,32 +34,54 @@ i) Why did I make this app available on Github? Having access to the source code
 # Getting Started
 
 ## Prerequisites
-TODO: Create a Python virtual environment/create new project subdir? 
+Python 3.13+
 
 ## Installation
 
-> TBD...
-
-Clone the repo
+1. Clone the repository Open your terminal and run
 
 > git clone https://github.com/TechPmCareerPath/AI_Job_Search_Center.git
+> 
+> cd AI_Job_Search_Center
 
-Get required Python packages
+2. Recommended to set up a virtual environment
 
-> ...my requirements.txt
+> python -m venv myenv
+> 
+> #### # On Windows:
+> 
+> .\myenv\Scripts\activate
+> 
+> #### # On macOS/Linux:
+> 
+> source myenv/bin/activate
+
+3. Install dependencies
+
+> pip install -r requirements.txt
+
+4. Get API keys
 
 * Get a free JobsPipe API key [here.](https://jobspipe.dev/pricing) (I'm not affiliated with JobsPipe, just a happy customer.)
 
 * Get a free Gemini API key in [Google AI Studio.](https://aistudio.google.com) See [Google Gemini pricing.](https://ai.google.dev/gemini-api/docs/pricing) (I'm not affiliated with Google, just a happy customer.)
 
-**ALWAYS secure your API keys.** The AI Job Search Center will only use your keys for duration of the session. Once you close the browser tab and kill streamlit in the console, the keys are no longer used. You'll need to add the keys in the Global Setup box on the left side of the app UI each time you want to use it.
+* **ALWAYS secure your API keys.** The AI Job Search Center will only use your keys for duration of the session. Once you close the browser tab and kill streamlit in the console, the keys are no longer used. You'll need to add the keys in the Global Setup box on the left side of the app UI each time you want to use it.
 
-# Usage
+## Usage
 Open a command prompt, go to the project directory containing app.py and run: 
 
 > streamlit run app.py
 
 A new browser window will open with a URL pointing to your localhost like: http://localhost:8501/ 
+
+## Feature walkthrough
+
+### Global Setup
+Add your JobsPipe API and Gemini API keys on the left.
+
+<img width="266" height="330" alt="AI_Job_Search_Center_GlobalSetup" src="https://github.com/user-attachments/assets/a867fa1d-383c-4eda-852e-b82982ccddb6" />
+
 
 ### Job Search Plan
 
@@ -75,7 +97,7 @@ Log your progress on the "Active Job Search Dashboard". Under the tab "Job Searc
 
 After using the AI Job Center for a few weeks and adding notes to the Job Application Tracker Notes column, the app has more context to give you suggestions on your overall job hunting approach. In the Job Search Plan tab, simply choose "Analyze Application Tracker & Get Advice" and it will pass your job application tracker and current weekly plan to AI to analyze. The results will come after the header "Strategic Job Search Insights as of YYYY-MM-DD..."
 
-The Weekly Plan Advisor results will remain across sessions until you choose to run it again, which is why the last run date is provided.
+The Weekly Plan Advisor results are saved and available across sessions until you choose to run it again, which is why the last run date is provided.
 
 ### Job Search & Resume Tailor
 
@@ -83,11 +105,11 @@ The Weekly Plan Advisor results will remain across sessions until you choose to 
 
 The resume can be in .PDF, .DOCX or .TXT formats. You may have several resumes for slightly different positions you are pursuing. Each one can be uploaded and selected in the "Choose Active Resume File" drop-down later. This step puts the resume in the root folder for this project with the same filename.
 
-**Note:** The resume you choose here will be sent to Gemini. It's suggested to remove any personally identifiable information (PII) before uploading it (ex: name, email, Linked In URL, phone number, etc.).
+**Note:** The resume you choose here will be sent to Gemini. It's suggested to **remove any personally identifiable information (PII)** before uploading it (ex: name, email, Linked In URL, phone number, etc.).
 
 To try this feature, use the sample resume in .\resume\Sample_resume_my_Program_Mgt_example_v3.txt
 
-You can see an example of the Resume Tailor results previously run against the sample resume by viewing the file at: .\resume\Sample_Tailored_Resume_Output.txt. Note the critique sections at the top, bottom and the "[UPDATED]" text to show which sections AI updated.
+An example of the Resume Tailor results using the sample resume above can be found at: .\resume\Sample_Tailored_Resume_Output.txt. Note the critique sections at the top, bottom and the "[UPDATED]" text to show which sections AI updated.
 
 2. Select Job Source Query. 
 
@@ -101,13 +123,15 @@ You can choose the expand box "View Selected Job Query" to view the selected Job
 
 Lastly, choose the shiny red button "Find Job Matches with AI". This will call JobsPipe to get the jobs in the selected query. Next the app will send the job results along with the chosen resume to Gemini to compare. Gemini will return the Match Score %, Reasoning, Key Matching Skills and Missing Skills, which are then displayed in the UI. 
 
-### Job Search & Resume Tailor --> Expand a job --> Generate Tailored Resume
+### Job Search & Resume Tailor --> Expand one job --> Generate Tailored Resume
 
 Within each matching job, there's a button that says "Generate Tailored Resume". It does what it says :-) The chosen job and resume are sent to Gemini. After the Tailored Resume has been created, it will display in text below this button. You can also download that tailored resume and use it to update your official resume.
 
-**"Did you apply for this position?"** --> **Yes**, will add this position to the Job Application Tracker table and increment Active Job Search Dashboard -> Applications task by one, (if there is an active job search and the "Applications" task was added for that week.). You can **undo** this action by choosing "No".
+**"Did you apply for this position?"** --> **"Yes"**, will add this position to the Job Application Tracker table and increment Active Job Search Dashboard -> Applications task by one, (if there is an active job search and the "Applications" task was added for that week.). You can **undo** this action by choosing "No".
 
-**"Did you apply for this position?"** --> **No**, just marks the status as "Skipped" with not further action. You can **undo** this action by choosing "Yes".
+**"Did you apply for this position?"** --> **"No"**, just marks the status as "Skipped" with not further action needed by the user. You can **undo** this action by choosing "Yes".
+
+<img width="1052" height="552" alt="AI_Job_Search_Center_FindJobMatches" src="https://github.com/user-attachments/assets/70e8b3dc-b8a1-4de0-a34c-9c2b8ef62087" />
 
 
 ### Job Application Tracker
@@ -122,7 +146,10 @@ Based on the Follow-up Date you enter in this table, there will be 2 statues as 
 The **Filter Status** shows the statuses that **you create**. I didn't want to force a process on my users, so I let you decide what follow-up statuses to create. Suggested to create as few statuses as possible, and make them meaningful :-) 
 
 Note, you can hover on the table to get a little menu in the top right. Also, choosing a row in the far left column will enable deletion.
-<img width="630" height="338" alt="AI_Job_Search_Center_JobApplicationTrackerTable" src="https://github.com/user-attachments/assets/3139c0cf-d206-434e-8122-2f036025212a" />
+<img width="907" height="592" alt="AI_Job_Search_Center_JobApplicationTrackerTable" src="https://github.com/user-attachments/assets/c6eb6ea2-bfc6-4289-96a0-0e70c974da7f" />
+
+
+After making changes to the table, choose the "Save Tracker Changes" button.
 
 ### System Configuration Editor
 This allows you to modify AI model settings and system prompts live without touching the code. For convenience, all changes are saved in the .yaml files mentioned on this screen.
