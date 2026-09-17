@@ -1,6 +1,7 @@
 # AI_Job_Search_Center
 
-You have probably seen job search tools that can help you search for jobs, update your resume, and apply for jobs. What about an end-to-end job search **PLAN** with weekly goals **you choose** and **ADVICE** to keep you motivated along the way?
+You have probably seen job search tools that can help you search for jobs, update your resume, and apply for jobs. Rather than a tool to automate the boring 
+"Find job posting -> Apply for job -> Repeat" loop, what about an end-to-end job search **PLAN** with dynamic, weekly goals **YOU CHOOSE** and **DETAILED ADVICE** to keep you motivated along the way?
 
 **I created AI Job Search Center since it mirrors the job search plan I've been giving my coaching clients.**
 
@@ -12,11 +13,11 @@ a) You can organize and execute a job search PLAN using pre-defined tasks and go
 
 b) Allows you to set WHEN your job search week begins and ends. You want to do a job search Tuesday through Sunday? No problem! A Job Search Dashboard shows your progress and what needs to be completed by a due date you choose.
 
-c) You can select a resume from among several of your resumes to not only compare it to job descriptions but also consider the industry domain fit, mandatory hard skills, technical tools, experience leveling and more. These factors are used to generate a **Job Match Score**. You can easily adjust the minimum Job Match Score in the UI so that you don't see positions that don't fully align with your skills and experience. 
+c) You can select a resume from among **several of your resumes**. Once a resume is chosen, the resume is not only compared to the job descriptions but also considers the industry domain fit, mandatory hard skills, technical tools, experience leveling and more. These factors are used to generate an estimated **Job Match Score**. You can easily adjust the minimum Job Match Score in the UI so that you don't see positions that don't fully align with your skills and experience. 
 
-d) You can use the **Resume Tailor** to customize and draft one of your resumes to more closely align with the chosen position. The tailored resume will also show knowledge and experience gaps to address before you submit it.
+d) You can use the **Resume Tailor** to automatically customize and draft one of your resumes to more closely align with the chosen position. The tailored resume will also show knowledge and experience gaps to address before you submit it for an open position.
 
-e) See at a glance your job hunting status. The **Job Application Tracker** tracks jobs applied across time. Jobs tracked can be those found using the AI Job Search Center or jobs found and applied outside of the app, like a former co-worker mentioned a job opening to you. 
+e) Your job hunting status is available at a glance. The **Job Application Tracker** tracks jobs applied across time. Jobs tracked can be those found using the AI Job Search Center or jobs found and applied outside of the app, like a former co-worker mentioned a job opening to you. 
 
 f) You can use the **Weekly Plan Advisor** for job hunting advice. It analyzes your notes in the Job Application Tracker and additional results to bridge the gap between your historical job search patterns and upcoming goals allowing AI to spot misalignments such as aiming for 20 job applications this week when 5 overdue follow-ups from last week are pending.
 
