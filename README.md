@@ -9,21 +9,21 @@ You have probably seen job search tools that can help you search for jobs, updat
 
 **AI Job Search Center:**
 
-a) You can organize and execute a job search PLAN using pre-defined tasks and goals YOU choose. This keeps the job hunt fresh and variable and yet intentional. 
+a) You can organize and execute a job search PLAN using pre-defined **tasks and goals YOU choose.** This keeps the job hunt fresh and variable and yet intentional. 
 
-b) Allows you to set WHEN your job search week begins and ends. You want to do a job search Tuesday through Sunday? No problem! A Job Search Dashboard shows your progress and what needs to be completed by a due date you choose.
+b) Allows you to set WHEN your job search week begins and ends. You want to do a job search Tuesday through Sunday? No problem! A Job Search Dashboard **shows your progress** and what needs to be completed by a due date you chose.
 
-c) You can select a resume from among **several of your resumes**. Once a resume is chosen, the resume is not only compared to the job descriptions but also considers the industry domain fit, mandatory hard skills, technical tools, experience leveling and more. These factors are used to generate an estimated **Job Match Score**. You can easily adjust the minimum Job Match Score in the UI so that you don't see positions that don't fully align with your skills and experience. 
+c) You can select a resume from among **several of your resumes**. Once a resume is chosen, the resume is not only compared to job descriptions but also considers the industry domain fit, mandatory hard skills, technical tools, experience leveling and more. These factors are used to generate an estimated **Job Match Score**. You can easily adjust the minimum Job Match Score in the UI so that you don't see positions that don't fully align with your skills and experience. With the default API integration, you can **search for jobs across 30+ ATS sources!**
 
-d) You can use the **Resume Tailor** to automatically customize and draft one of your resumes to more closely align with the chosen position. The tailored resume will also show knowledge and experience gaps to address before you submit it for an open position.
+d) Choose a job in the results, then use the **Resume Tailor** to automatically customize and draft your chosen resume to more closely align with that job. The tailored resume will also show knowledge and experience gaps to address before you submit it for an open position.
 
-e) Your job hunting status is available at a glance. The **Job Application Tracker** tracks jobs applied across time. Jobs tracked can be those found using the AI Job Search Center or jobs found and applied outside of the app, like a former co-worker mentioned a job opening to you. 
+e) The **Job Application Tracker** shows your overall job hunting status at a glance. It tracks jobs applied over weeks/months in the past. Jobs tracked can be those found using the AI Job Search Center or jobs found and applied outside of the app, like a former co-worker mentioned a job opening to you. 
 
-f) You can use the **Weekly Plan Advisor** for job hunting advice. It analyzes your notes in the Job Application Tracker and additional results to bridge the gap between your historical job search patterns and upcoming goals allowing AI to spot misalignments such as aiming for 20 job applications this week when 5 overdue follow-ups from last week are pending.
+f) You can use the **Weekly Plan Advisor** for job hunting advice. It analyzes your notes in the Job Application Tracker and additional results to bridge the gap between your historical job search patterns and upcoming goals allowing AI to spot misalignments. One example of misalignment: aiming for 20 job applications this week when you have 5 overdue follow-ups from last week that are pending.
 
-g) Use the **System Configuration Editor** to easily update each of the AI prompts used by this app to more closely meet your needs. Also, adjust the AI model to use and the temperature\creativity AI uses in its matches and responses. 
+g) Use the **System Configuration Editor** to easily update each of the AI prompts used by this app to more closely meet your needs. Also, adjust the  temperature\creativity AI uses in its job matches and detailed responses.
 
-h) AI Job Search Center is meant to be **quick, inexpensive, and run locally** on your machine. You keep your data (except for data included in API calls). 
+h) AI Job Search Center is meant to be **quick, inexpensive, and run locally** on your machine. You keep your data (except for data passed in API calls).
 
 **Why did I make this app available on Github?** 
 
