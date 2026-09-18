@@ -9,7 +9,7 @@ You have probably seen job search tools that can help you search for jobs, updat
 
 **AI Job Search Center:**
 
-a) You can organize and execute a job search PLAN using pre-defined **tasks and goals YOU choose.** This keeps the job hunt fresh and variable and yet intentional. 
+a) You can organize and execute a job search plan using pre-defined **tasks and goals YOU choose.** This keeps the job hunt fresh and variable and yet intentional. 
 
 b) Allows you to set WHEN your job search week begins and ends. You want to do a job search Tuesday through Sunday? No problem! A Job Search Dashboard **shows your progress** and what needs to be completed by a due date you chose.
 
@@ -19,7 +19,7 @@ d) Choose a job in the results, then use the **Resume Tailor** to automatically 
 
 e) The **Job Application Tracker** shows your overall job hunting status at a glance. It tracks jobs applied over weeks/months in the past. Jobs tracked can be those found using the AI Job Search Center or jobs found and applied outside of the app, like a former co-worker mentioned a job opening to you. 
 
-f) You can use the **Weekly Plan Advisor** for job hunting advice. It analyzes your notes in the Job Application Tracker and additional results to bridge the gap between your historical job search patterns and upcoming goals allowing AI to spot misalignments. One example of misalignment: aiming for 20 job applications this week when you have 5 overdue follow-ups from last week that are pending.
+f) Get job hunting advice from the **Weekly Plan Advisor**. This Advisor analyzes YOUR notes in the Job Application Tracker and additional results to bridge the gap between your historical job search patterns and upcoming goals allowing AI to spot misalignments. One example of misalignment: aiming for 20 job applications this week when you have 5 overdue follow-ups from last week that are pending.
 
 g) Use the **System Configuration Editor** to easily update each of the AI prompts used by this app to more closely meet your needs. Also, adjust the  temperature\creativity AI uses in its job matches and detailed responses.
 
