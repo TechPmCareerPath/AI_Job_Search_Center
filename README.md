@@ -88,7 +88,7 @@ Add your JobsPipe API and Gemini API keys on the left.
 
 ### Job Search Plan
 
-Go to the Job Search Plan tab, choose the start and end dates for your weekly job search. Also, choose the job hunting tasks for that week, along with the a goal for each (ex: Job Applications, 6 job applications, etc.)
+Go to the Job Search Plan tab, choose the start and end dates for your weekly job search. Also, choose the job hunting tasks you want to do that week along with a goal for each (ex: Job Applications, 6 job applications, etc.)
 
 Note the help "?" bubble next to each job hunting task will give more info.
 
@@ -101,7 +101,7 @@ Log your progress on the "Active Job Search Dashboard". Under the tab "Job Searc
 
 ### Job Search Plan --> Weekly Plan Advisor
 
-After using the AI Job Center for a few weeks and adding notes to the Job Application Tracker Notes column, the app has more context to give you suggestions on your overall job hunting approach. In the Job Search Plan tab, simply choose "Analyze Application Tracker & Get Advice" and it will pass your job application tracker and current weekly plan to AI to analyze. The results will come after the header "Strategic Job Search Insights as of YYYY-MM-DD..."
+After using the AI Job Search Center for a few weeks and adding notes to the Job Application Tracker Notes column, the app has more context to give you suggestions on your overall job hunting approach. In the Job Search Plan tab - Weekly Plan Advisor, simply choose "Analyze Application Tracker & Get Advice" and it will pass your job application tracker and current weekly plan to AI to analyze. The results will come after the header "Strategic Job Search Insights as of YYYY-MM-DD..."
 
 The Weekly Plan Advisor results are saved and available across sessions until you choose to run it again, which is why the last run date is provided.
 
@@ -115,7 +115,7 @@ The resume can be in .PDF, .DOCX or .TXT formats. You may have several resumes f
 
 To try this feature, use the sample resume in .\resume\Sample_resume_my_Program_Mgt_example_v3.txt
 
-An example of the Resume Tailor results using the sample resume above can be found at: .\resume\Sample_Tailored_Resume_Output.txt. Note the critique sections at the top, bottom and the "[UPDATED]" text to show which sections AI updated.
+An example of the Resume Tailor results using the sample resume above can be found at: .\output\Sample_Tailored_Resume_Output.txt. Note the critique sections at the top, bottom and the "[UPDATED]" text to show which sections AI updated.
 
 2. Select Job Source Query. 
 
@@ -127,13 +127,13 @@ A single YAML file can contain multiple JobsPipe job queries. In the drop-down l
 
 You can choose the expand box "View Selected Job Query" to view the selected JobsPipe query. 
 
-Lastly, choose the shiny red button "Find Job Matches with AI". This will call JobsPipe to get the jobs in the selected query. Next the app will send the job results along with the chosen resume to Gemini to compare. Gemini will return the Match Score %, Reasoning, Key Matching Skills and Missing Skills, which are then displayed in the UI. 
+Lastly, choose the shiny red button "Find Job Matches with AI". This will call JobsPipe to get the jobs in the selected query. Next the app will send the job results along with the chosen resume to Gemini to compare. Gemini will return the Match Score %, Reasoning, Key Matching Skills and Missing Skills, which are displayed in the UI. 
 
 ### Job Search & Resume Tailor --> Expand one job --> Key Matching Skills
 
 **Note:** AI will infer that you have Key Matching Skills even though they are not explicitly listed on your resume.
 
-For example, if you list "SQL" on your resume, AI will infer that you have "ETL" as a Key Matching Skill for you to consider adding to your resume to more closely match the job description. If you mention "ML projects" and or completed an "AI Fundamentals" course, AI will infer that you have experience with basic ML models like time series and/or anomaly detection as a Key Matching Skill for you to consider adding to your resume to more closely match the job description. 
+For example, if you list "SQL" on your resume, AI will infer that you have "ETL" as a Key Matching Skill for you to consider adding to your resume to more closely match the job description. If you mention "ML projects" or completed an "AI Fundamentals" course, AI will infer that you have experience with basic ML models like time series and/or anomaly detection as a Key Matching Skill for you to consider adding to your resume to more closely match the job description. 
 
 ### Job Search & Resume Tailor --> Expand one job --> Generate Tailored Resume
 
@@ -141,27 +141,27 @@ Within each matching job, there's a button that says "Generate Tailored Resume".
 
 **"Did you apply for this position?"** --> **"Yes"**, will add this position to the Job Application Tracker table and increment Active Job Search Dashboard -> Applications task by one, (if there is an active job search and the "Applications" task was added for that week.). You can **undo** this action by choosing "No".
 
-**"Did you apply for this position?"** --> **"No"**, just marks the status as "Skipped" with not further action needed by the user. You can **undo** this action by choosing "Yes".
+**"Did you apply for this position?"** --> **"No"**, just marks the status as "Skipped" with no further action needed by the user. You can **undo** this action by choosing "Yes".
 
 <img width="1052" height="552" alt="AI_Job_Search_Center_FindJobMatches" src="https://github.com/user-attachments/assets/70e8b3dc-b8a1-4de0-a34c-9c2b8ef62087" />
 
 
 ### Job Application Tracker
-This is a table to view and edit the jobs you applied for. 
+This shows your overall job hunting status at a glance. It's a table to view and edit the jobs you applied for, add notes and change the status.
 
-**All of your job applications** can be tracked here. This table includes jobs you found via this app and chose "Did you apply for this position?" --> Yes. Also, this table supports manually adding jobs you found and applied for **outside** of this app, like a former co-worker mentioned a job that you applied for. 
+**All of your job applications** can be tracked here. This table includes jobs you found via this app and chose "Did you apply for this position?" --> "Yes". Also, this table supports manually adding jobs you found and applied for **outside** of this app, like a former co-worker mentioned a job that you applied for. 
 
-Based on the Follow-up Date you enter in this table, there will be 2 statues as the top. The statues are: 
+Based on the Follow-up Date you enter in this table, there will be 2 states as the top. The states are: 
 * Follow-ups that are past due or due today.
 * Follow-ups to be completed tomorrow.
 
-The **Filter Status** shows the statuses that **you create**. I didn't want to force a process on my users, so I let you decide what follow-up statuses to create. Suggested to create as few statuses as possible, and make them meaningful :-) 
+The **Filter Status** shows the statuses **you create**. I didn't want to force a process on my users, so I let you decide what follow-up statuses to create. It's suggested to create as few statuses as possible, and make them meaningful :-) 
 
 Note, you can hover on the table to get a little menu in the top right. Also, choosing a row in the far left column will enable deletion.
 <img width="907" height="592" alt="AI_Job_Search_Center_JobApplicationTrackerTable" src="https://github.com/user-attachments/assets/c6eb6ea2-bfc6-4289-96a0-0e70c974da7f" />
 
+After making changes to the table, choose the "Save Tracker Changes" button under this table.
 
-After making changes to the table, choose the "Save Tracker Changes" button.
 
 ### System Configuration Editor
 This allows you to modify AI model settings and system prompts live without touching the code. For convenience, all changes are saved in the .yaml files mentioned on this screen.
@@ -175,19 +175,20 @@ Note the "?" bubble explains what each option is for and how to set the range.
 
 ```
 AI_job_search_center\
-├── app.py                               # Main Streamlit application entry point
+├── app.py                               # Main Streamlit application entry point.
 ├── .\config\config.yaml                 # Model configs (model names, temperature, etc.), editable via the UI.
-├── .\config\prompts.yaml                # AI prompt templates, editable via UI.
-├── .\config\query.yaml                  # Jobs query configurations, currently configured for JobsPipe. You must manually edit the file.
+├── .\config\prompts.yaml                # AI prompt templates, editable via the UI.
+├── .\config\query.yaml                  # Jobs query configurations, currently configured for JobsPipe. You must manually edit this file.
 ├── .\output\agent_job_analysis.json     # Raw output from choosing "Find Job Matches with AI". The app then compares returned jobs to the selected resume.
 ├── .\output\agent_weekly_advisor.json   # Raw output from the Weekly Plan Advisor. 
-├── .\output\jobs.csv                    # Subset of most useful fields from your jobs query stored in jobs.json.
-├── .\output\jobs.json                   # Full results from your jobs query, provided by JobsPipe output.
+├── .\output\jobs.csv                    # All results from your JobsPipe query above and below Match Threshold%. Has a subset of most useful fields from jobs.json.
+├── .\output\jobs.json                   # All results from your JobsPipe query above and below Match Threshold%.
 ├── .\output\skipped_jobs.json           # Based on job matching results, if the user chooses NOT to pursue a job, that job ID is recorded here.
 ├── .\output\tracker_db.json             # Stores the Job Application Tracker table.
 ├── .\output\weekly_plan.json            # Stores the Job Search Plan -> Active Job Search Dashboard.
-├── .\resume\Sample_resume_my_Program_Mgt_example_v3.txt  # Sample PgM resume to try.
-└── .\resume\Sample_Tailored_Resume_Output.txt            # An example of the Resume Tailor results previously run against the sample PgM resume.
+├── .\output\Sample_Tailored_Resume_Output.txt            # An example of the Resume Tailor results previously run against the sample PgM resume.
+├── .\resume\Sample_resume_Program_Mgt_example_v3.txt  # Sample PgM resume to try.
+└── .\uploads                            # Any resumes or query.yaml uploads you chose go here.
 
 ```
 
