@@ -72,7 +72,7 @@ Python 3.13+
 * **ALWAYS secure your API keys.** The AI Job Search Center will only use your keys for duration of the session. Once you close the browser tab and kill streamlit in the console, the keys are no longer used. You'll need to add the keys in the Global Setup box on the left side of the app UI each time you want to use it.
 
 ## Usage
-From the command prompt showing the virtual environment created above and within the project directory containing app.py and run: 
+From a command prompt showing the virtual environment created above and within the project directory containing app.py, run: 
 
 > streamlit run app.py
 
