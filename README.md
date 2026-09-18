@@ -55,13 +55,13 @@ cd AI_Job_Search_Center
 python -m venv myenv
 ```
 
-#### # On Windows:
+On Windows:
 
 ```bash
 .\myenv\Scripts\activate
 ```
  
-#### # On macOS/Linux:
+On macOS/Linux:
 
 ```bash
 source myenv/bin/activate
@@ -88,7 +88,7 @@ From a command prompt showing the virtual environment created above and within t
 streamlit run app.py
 ```
 
-A new browser window will open with a URL pointing to your localhost like: http://localhost:8501/ 
+In a few seconds, a new browser window will open with a URL pointing to your localhost like: http://localhost:8501/ 
 
 ## Feature walkthrough
 
@@ -170,6 +170,7 @@ Based on the Follow-up Date you enter in this table, there will be 2 states as t
 The **Filter Status** shows the statuses **you create**. I didn't want to force a process on my users, so I let you decide what follow-up statuses to create. It's suggested to create as few statuses as possible, and make them meaningful :-) 
 
 Note, you can hover on the table to get a little menu in the top right. Also, choosing a row in the far left column will enable deletion.
+
 <img width="907" height="592" alt="AI_Job_Search_Center_JobApplicationTrackerTable" src="https://github.com/user-attachments/assets/c6eb6ea2-bfc6-4289-96a0-0e70c974da7f" />
 
 After making changes to the table, choose the "Save Tracker Changes" button under this table.
