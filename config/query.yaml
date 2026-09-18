@@ -1,0 +1,9 @@
+queries:
+  procurement: |
+    {"job_title_or":["Buyer","Procurement","Purchasing Agent","Procurement Specialist","Procurement Coordinator"], "job_seniority_or":["Entry_Level"], "include_unlabeled_seniority": true, "job_country_code_or":["US"], "job_location_or":["Austin","Houston","San Antonio","Dallas","Garland","Fort Worth"], "posted_at_max_age_days":30, "include_total_results": true, "limit":10}
+
+  program manager: |
+    {"job_title_or":["program manager"], "job_seniority_or":["Senior"], "include_unlabeled_seniority": true, "job_country_code_or":["US"], "job_location_or":["Austin","Houston","San Antonio","Dallas","Garland","Fort Worth"], "posted_at_max_age_days":30, "include_total_results": true, "limit":10}
+
+  project manager: |
+    {"job_title_or":["project manager"], "job_seniority_or":["Senior"], "include_unlabeled_seniority": true, "job_country_code_or":["US"], "job_location_or":["Austin","Houston","San Antonio","Dallas","Garland","Fort Worth"], "posted_at_max_age_days":30, "include_total_results": true, "limit":10}

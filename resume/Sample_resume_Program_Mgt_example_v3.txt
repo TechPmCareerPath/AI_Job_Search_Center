@@ -1,0 +1,42 @@
+Kris Foster
+Senior Program Manager | KrisF@example.com | 123.456.7890 | LinkedIn
+
+____________________________________________________________________________________________________
+Summary
+
+- 10+ years of experience leading enterprise-wide initiatives across 4+ globally dispersed teams. 
+- Deep knowledge of B2B and B2C eCommerce strategy, compliance, and data storage architectures.
+- Excels at defining 1+ year program roadmaps, strong customer empathy, processes optimization, and driving execution through agile methodologies.
+_____________________________________________________________________________________________________
+Work Experience
+
+Senior Program Manager – Innovative E-Commerce				Feb 20xx  - Current
+- Leveraged AI to improve US and EU retail customer checkout flow, resulting in ~$14M 2024 sales increase.
+- Led Agile transformation efforts across multiple departments, training over 30 on-shore and off-shore engineering team members on Scrum principles. Achieved 25% improvement in sprint velocity over subsequent 9 month period.
+- Led creation of a 2-year program roadmap in collaboration with 15+ cross-functional partners spanning stakeholders, engineering, customer support and senior leadership. Presented roadmap to senior management to secure $2M annual budget.
+- Led “Rolling Migration” planning and execution to migrate to new data storage backend. 1.3M US and EU customers received consistent 99.99% availability before, during and after this migration.
+
+Program Manager – SquareCircle Partners						Feb 20xx  - Jan 20xx
+- Created and communicated bold direction for the Axon V2 release (B2B and B2C). Represented 20 developers across three teams with one team in India. Led release to ship within two weeks over a twelve month period and achieved $13M US inventory cost reduction.
+- Specified Axon V2 task workflow feature which enhanced overall US customer efficiency by 20%.
+- Collaborated closely with stakeholders to ensure alignment with customer needs and successfully launched new customer onboarding functionality that increased sign-ups by 25%.
+- Facilitated sprint planning, daily stand-ups, retrospectives, and backlog grooming sessions to ensure consistent delivery and continuous improvement.
+- Led a cross-functional program to achieve 100% compliance with the California Consumer Privacy Act (CCPA) across 3 core product lines, thus mitigating significant legal exposure. Ensured a seamless user experience while adhering to strict regulatory deadlines.
+
+Project Manager – Accellant Software					                  Feb 2014  - Jan 20xx
+- Collaborated with 10 engineers to create quarterly project release schedules, ensuring alignment on ship dates. During 2015 each quarterly project shipped within 5 days of the original date.
+- Achieved 30% reduction in new feature development time by expanding quality assurance scope and improving bug triage process. 
+- Improved risk tracking, mitigation and resolution by instituting and evangelizing risk management processes among the engineering team.
+- Created and evangelized request intake request process that reduced the number of ad-hoc stakeholder requests by approximately 35%.
+- Developed and communicated detailed project charters and status reports for stakeholders to make go/no-go product launch decisions.
+____________________________________________________________________________________
+Education
+- AI Strategy for Business, July 2023, LinkedIn Training.
+- AI Fundamentals, April 2023, Microsoft Learning.
+- Bachelor of Science Degree, Computer Information Systems, 2014, Georgian College, Madison Wisconsin.
+____________________________________________________________________________________
+Additional Qualifications
+- Languages: Python, HTML, CSS, Javascript, SQL, PartiQL.
+- Technologies/Tools: Linux, Pandas, MS SQL Server, Dynamo DB, Amazon Redshift, PowerBI, Microsoft Project, MS Office Suite, Jira, Confluence.
+- Current Certifications: Project Management Professional (PMP) #123456, Project Management Institute, Jan 2023. Certified Scrum Master (CSM), Agile Institute, June 2024.
+- Awards: Q1 2025 received “Employee of the Quarter” award. Integrated AI-driven analytics into Innovative Software Inc. A/B testing framework which resulted in 20% reduction in new release testing cycle time.
