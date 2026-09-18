@@ -17,9 +17,9 @@ c) You can select a resume from among **several of your resumes**. Once a resume
 
 d) Choose a job in the results, then use the **Resume Tailor** to automatically customize and draft your chosen resume to more closely align with that job. The tailored resume will also show knowledge and experience gaps to address before you submit it for an open position.
 
-e) The **Job Application Tracker** shows your overall job hunting status at a glance. It tracks jobs applied over weeks/months in the past. Jobs tracked can be those found using the AI Job Search Center or jobs found and applied outside of the app, like a former co-worker mentioned a job opening to you. 
+e) The **Job Application Tracker** shows your overall job hunting status at a glance. It tracks jobs applied over weeks/months in the past. Jobs tracked can be those found using the AI Job Search Center or jobs found and applied **outside of this app**, like a former co-worker mentioned a job opening to you. 
 
-f) Get job hunting advice from the **Weekly Plan Advisor**. This Advisor analyzes YOUR notes in the Job Application Tracker and additional results to bridge the gap between your historical job search patterns and upcoming goals allowing AI to spot misalignments. One example of misalignment: aiming for 20 job applications this week when you have 5 overdue follow-ups from last week that are pending.
+f) Get job hunting advice from the **Weekly Plan Advisor**. The Advisor analyzes YOUR notes in the Job Application Tracker and additional results to bridge the gap between your historical job search patterns and upcoming goals to spot misalignments and suggest improvements. One example of misalignment: you chose to submit 20 job applications this week when you have 7 overdue, warm follow-ups from last week that are pending.
 
 g) Use the **System Configuration Editor** to easily update each of the AI prompts used by this app to more closely meet your needs. Also, adjust the  temperature\creativity AI uses in its job matches and detailed responses.
 
