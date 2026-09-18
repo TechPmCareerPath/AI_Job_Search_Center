@@ -138,9 +138,9 @@ Within each matching job, there's a button that says "Generate Tailored Resume".
 
 
 ### Job Application Tracker
-A table to view and edit the jobs you applied for. This table includes jobs you found and via this app and chose "Did you apply for this position?" --> Yes. 
+This is a table to view and edit the jobs you applied for. 
 
-This table also supports manually adding jobs you found and applied for **outside** of this app, like a former co-worker mentioned a job that you applied for. **All of your job applications** can be tracked here. 
+**All of your job applications** can be tracked here. This table includes jobs you found via this app and chose "Did you apply for this position?" --> Yes. Also, this table supports manually adding jobs you found and applied for **outside** of this app, like a former co-worker mentioned a job that you applied for. 
 
 Based on the Follow-up Date you enter in this table, there will be 2 statues as the top. The statues are: 
 * Follow-ups that are past due or due today.
