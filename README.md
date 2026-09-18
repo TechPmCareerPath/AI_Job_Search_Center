@@ -96,6 +96,9 @@ When done, choose the "Launch weekly plan" button.
 
 Log your progress on the "Active Job Search Dashboard". Under the tab "Job Search & Resume Tailor", any positions that you apply for (ex: "Did you apply for this position?", if you choose "YES") will **automatically increment** the number of Applications in the "Active Job Search Dashboard" (if there is an active job search and the "Applications" task was added for that week). 
 
+<img width="842" height="717" alt="AI_Job_Search_Center_Create_Job_Search_Plan" src="https://github.com/user-attachments/assets/ca97888c-a327-49d1-a68d-8944b6137366" />
+
+
 ### Job Search Plan --> Weekly Plan Advisor
 
 After using the AI Job Center for a few weeks and adding notes to the Job Application Tracker Notes column, the app has more context to give you suggestions on your overall job hunting approach. In the Job Search Plan tab, simply choose "Analyze Application Tracker & Get Advice" and it will pass your job application tracker and current weekly plan to AI to analyze. The results will come after the header "Strategic Job Search Insights as of YYYY-MM-DD..."
