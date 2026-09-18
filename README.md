@@ -45,24 +45,33 @@ Python 3.13+
 
 ```bash
 git clone https://github.com/TechPmCareerPath/AI_Job_Search_Center.git
+
 cd AI_Job_Search_Center
 ```
 
 2. Recommended to set up a virtual environment
 
-> python -m venv myenv
-> 
-> #### # On Windows:
-> 
-> .\myenv\Scripts\activate
-> 
-> #### # On macOS/Linux:
-> 
-> source myenv/bin/activate
+```bash
+python -m venv myenv
+```
+
+#### # On Windows:
+
+```bash
+.\myenv\Scripts\activate
+```
+ 
+#### # On macOS/Linux:
+
+```bash
+source myenv/bin/activate
+```
 
 3. Install dependencies
 
-> pip install -r requirements.txt
+```bash
+pip install -r requirements.txt
+```
 
 4. Get API keys
 
@@ -75,7 +84,9 @@ cd AI_Job_Search_Center
 ## Usage
 From a command prompt showing the virtual environment created above and within the project directory containing app.py, run: 
 
-> streamlit run app.py
+```bash
+streamlit run app.py
+```
 
 A new browser window will open with a URL pointing to your localhost like: http://localhost:8501/ 
 
