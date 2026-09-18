@@ -43,9 +43,10 @@ Python 3.13+
 
 1. Clone the repository Open your terminal and run
 
-> git clone https://github.com/TechPmCareerPath/AI_Job_Search_Center.git
-> 
-> cd AI_Job_Search_Center
+```bash
+git clone https://github.com/TechPmCareerPath/AI_Job_Search_Center.git
+cd AI_Job_Search_Center
+```
 
 2. Recommended to set up a virtual environment
 
