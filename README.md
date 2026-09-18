@@ -129,6 +129,12 @@ You can choose the expand box "View Selected Job Query" to view the selected Job
 
 Lastly, choose the shiny red button "Find Job Matches with AI". This will call JobsPipe to get the jobs in the selected query. Next the app will send the job results along with the chosen resume to Gemini to compare. Gemini will return the Match Score %, Reasoning, Key Matching Skills and Missing Skills, which are then displayed in the UI. 
 
+### Job Search & Resume Tailor --> Expand one job --> Key Matching Skills
+
+**Note:** AI will infer that you have Key Matching Skills even though they are not explicitly listed on your resume.
+
+For example, if you list "SQL" on your resume, AI will infer that you have "ETL" as a Key Matching Skill for you to consider adding to your resume to more closely match the job description. If you mention "ML projects" and or completed an "AI Fundamentals" course, AI will infer that you have experience with basic ML models like time series and/or anomaly detection as a Key Matching Skill for you to consider adding to your resume to more closely match the job description. 
+
 ### Job Search & Resume Tailor --> Expand one job --> Generate Tailored Resume
 
 Within each matching job, there's a button that says "Generate Tailored Resume". It does what it says :-) The chosen job and resume are sent to Gemini. After the Tailored Resume has been created, it will display in text below this button. You can also download that tailored resume and use it to update your official resume.
