@@ -1,7 +1,7 @@
 # AI_Job_Search_Center
 
 You have probably seen job search tools that can help you search for jobs, update your resume, and apply for jobs. Rather than a tool to automate the boring 
-"Find job posting -> Apply for job -> Repeat" loop, what about an end-to-end job search **PLAN** with dynamic, weekly goals **YOU CHOOSE** and **DETAILED ADVICE** to keep you motivated along the way?
+"Find job posting -> Apply for job -> Repeat" loop, what about a job search **PLAN** with dynamic, weekly goals **YOU CHOOSE** and **DETAILED ADVICE** to keep you motivated along the way?
 
 **I created AI Job Search Center since it mirrors the job search plan I've been giving my coaching clients.**
 
@@ -79,7 +79,7 @@ pip install -r requirements.txt
 
 * Get a free Gemini API key in [Google AI Studio.](https://aistudio.google.com) See [Google Gemini pricing.](https://ai.google.dev/gemini-api/docs/pricing) (I'm not affiliated with Google, just a happy customer.)
 
-* **ALWAYS secure your API keys.** The AI Job Search Center will only use your keys for duration of the session. Once you close the browser tab and kill streamlit in the console, the keys are no longer used. You'll need to add the keys in the Global Setup box on the left side of the app UI each time you want to use it.
+* **ALWAYS secure your API keys.** The AI Job Search Center will only use your keys for duration of the session. Once you close the browser tab and kill Streamlit in the console, the keys are no longer remembered. You'll need to add the keys in the Global Setup box on the left side of the app UI each time you want to use it.
 
 ## Usage
 From a command prompt showing the virtual environment created above and within the project directory containing app.py, run: 
@@ -106,7 +106,7 @@ Note the help "?" bubble next to each job hunting task will give more info.
 
 When done, choose the "Launch weekly plan" button.
 
-Log your progress on the "Active Job Search Dashboard". Under the tab "Job Search & Resume Tailor", any positions that you apply for (ex: "Did you apply for this position?", if you choose "YES") will **automatically increment** the number of Applications in the "Active Job Search Dashboard" (if there is an active job search and the "Applications" task was added for that week). 
+Log your progress on the Active Job Search Dashboard. Under the tab "Job Search & Resume Tailor", any positions that you apply for (ex: "Did you apply for this position?", if you choose "YES") will **automatically increment** the number of Applications in the Active Job Search Dashboard (if you previously created an active job search and the "Applications" task was added for that week). 
 
 <img width="842" height="717" alt="AI_Job_Search_Center_Create_Job_Search_Plan" src="https://github.com/user-attachments/assets/ca97888c-a327-49d1-a68d-8944b6137366" />
 
@@ -131,21 +131,21 @@ An example of the Resume Tailor results using the sample resume above can be fou
 
 2. Select Job Source Query. 
 
-You may be pursuing several different job titles, thus a different job query will be needed to retrieve the latest jobs for each job title. Also, you may have other  job preferences (ex: location, seniority, etc.). 
+You may be pursuing **several different job titles**, thus a different job query will be needed to retrieve the latest jobs for each job title. Also, you may have different job preferences (ex: location, seniority, etc.). 
 
 Select the JobsPipe YAML file in .\config\query.yaml.
 
-A single YAML file can contain multiple JobsPipe job queries. In the drop-down labeled "Choose Job to Query", select a query from that YAML file that matches the resume you just uploaded (ex: I uploaded a program manager resume, so choose the "program manager" query).
+A single query.yaml file can contain multiple JobsPipe job queries. In the drop-down labeled "Choose Job to Query", select a query from that YAML file that matches the resume you just uploaded (ex: I uploaded a program manager resume, so choose the "program manager" query).
 
 You can choose the expand box "View Selected Job Query" to view the selected JobsPipe query. 
 
-Lastly, choose the shiny red button "Find Job Matches with AI". This will call JobsPipe to get the jobs in the selected query. Next the app will send the job results along with the chosen resume to Gemini to compare. Gemini will return the Match Score %, Reasoning, Key Matching Skills and Missing Skills, which are displayed in the UI. 
+Lastly, choose the shiny red button "Find Job Matches with AI". This will call JobsPipe to get the jobs in the selected query. Next the app will send the job results along with the chosen resume to Gemini to compare. Gemini will return the Match Score %, Reasoning, Key Matching Skills and Missing Skills, which are all displayed in the UI. 
 
 ### Job Search & Resume Tailor --> Expand one job --> Key Matching Skills
 
 **Note:** AI will infer that you have Key Matching Skills even though they are not explicitly listed on your resume.
 
-For example, if you list "SQL" on your resume, AI will infer that you have "ETL" as a Key Matching Skill for you to consider adding to your resume to more closely match the job description. If you mention "ML projects" or completed an "AI Fundamentals" course, AI will infer that you have experience with basic ML models like time series and/or anomaly detection as a Key Matching Skill for you to consider adding to your resume to more closely match the job description. 
+Some examples: If you list "SQL" on your resume, AI will infer that you have "ETL" as a Key Matching Skill for you to consider adding to your resume to more closely match the job description. If you mention "ML projects" or completed an "AI Fundamentals" course, AI will infer that you have experience with basic ML models like time series or anomaly detection as a Key Matching Skill for you to consider adding to your resume to more closely match the job description. 
 
 ### Job Search & Resume Tailor --> Expand one job --> Generate Tailored Resume
 
@@ -159,7 +159,7 @@ Within each matching job, there's a button that says "Generate Tailored Resume".
 
 
 ### Job Application Tracker
-This shows your overall job hunting status at a glance. It's a table to view and edit the jobs you applied for, add notes and change the status.
+This shows your overall job hunting status at a glance. It's a table to view and edit the jobs you applied for, add your notes and change the application status.
 
 **All of your job applications** can be tracked here. This table includes jobs you found via this app and chose "Did you apply for this position?" --> "Yes". Also, this table supports manually adding jobs you found and applied for **outside** of this app, like a former co-worker mentioned a job that you applied for. 
 
@@ -167,7 +167,7 @@ Based on the Follow-up Date you enter in this table, there will be 2 states as t
 * Follow-ups that are past due or due today.
 * Follow-ups to be completed tomorrow.
 
-The **Filter Status** shows the statuses **you create**. I didn't want to force a process on my users, so I let you decide what follow-up statuses to create. It's suggested to create as few statuses as possible, and make them meaningful :-) 
+The **Filter Status** shows the statuses **you create**. I didn't want to force a job hunting process on my users, so I let you decide what follow-up statuses to create. It's suggested to create a few, distinct statuses as possible, and make them meaningful :-) 
 
 Note, you can hover on the table to get a little menu in the top right. Also, choosing a row in the far left column will enable deletion.
 
