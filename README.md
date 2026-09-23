@@ -205,6 +205,12 @@ AI_job_search_center\
 
 ```
 
+# Features you might consider adding
+
+* Automatic cover letter generation. This will entail at least: a new prompt added to the System Configuration Editor, save that prompt to prompts.yaml, a "Generate cover-letter" button probably near the "Generate Tailored Resume" button and maybe other changes.
+* The JobsPipe jobs.json query response has a wealth of info that could be easily added to the results, such as whether the job is remote or hybrid, salary range, clickable company domain to see if that job still exists on the corporate website, list of job benefits, etc.
+* Interview prep questions specific to the job and company. This will entail at least: a new prompt added to the System Configuration Editor, save that prompt to prompts.yaml, a "Generate interview questions" button probably near the "Generate Tailored Resume" button and maybe other changes.
+
 # Thanks!
 
 I hope the AI Job Search Center is a worthy addition to your job hunting! Please send me feedback. 
