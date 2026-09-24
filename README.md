@@ -3,7 +3,7 @@
 You have probably seen job search tools that can help you search for jobs, update your resume, and apply for jobs. Rather than a tool to automate the boring 
 "Find job posting -> Apply for job -> Repeat" loop, what about a job search **PLAN** with dynamic, weekly goals **YOU CHOOSE** and **DETAILED ADVICE** to keep you motivated along the way?
 
-**I created AI Job Search Center since it mirrors the job search plan I've been giving my coaching clients.**
+**I created AI Job Search Center since it mirrors the job search plan I've been giving my coaching clients.** It also includes elements of **gamification** to offer job seekers ongoing encouragement and support momentum.
 
 <img width="1825" height="780" alt="AI_Job_Search_Center_homepage" src="https://github.com/user-attachments/assets/e9419d51-7d4b-411f-9873-b9e476a665c9" />
 
@@ -23,7 +23,7 @@ f) Get job hunting advice from the **Weekly Plan Advisor**. The Advisor analyzes
 
 g) Use the **System Configuration Editor** to easily update each of the AI prompts used by this app to more closely meet your needs. Also, adjust the  temperature\creativity AI uses in its job matches and detailed responses.
 
-h) AI Job Search Center is meant to be **quick, inexpensive, and run locally** on your machine. You keep your data (except for data passed in API calls).
+h) AI Job Search Center is meant to be **quick, inexpensive, and run locally** on your machine. You keep your data (except for data passed in API calls). **Gamification* has been implemented through granular progress indicators, supportive messaging, and celebration for each completed weekly job search plan!
 
 **Why did I make this app available on Github?** 
 
