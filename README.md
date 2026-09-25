@@ -3,7 +3,7 @@
 You have probably seen job search tools that can help you search for jobs, update your resume, and apply for jobs. Rather than a tool to automate the boring 
 "Find job posting -> Apply for job -> Repeat" loop, what about a job search **PLAN** with dynamic, weekly goals **YOU CHOOSE** and **DETAILED ADVICE** to keep you motivated along the way?
 
-**I created AI Job Search Center since it mirrors the job search plan I've been giving my coaching clients.** It also includes elements of **gamification** to offer job seekers ongoing encouragement and support momentum.
+**I created AI Job Search Center since it mirrors the job search plan I've been giving my coaching clients.** It also includes elements of **gamification** to offer job seekers ongoing encouragement and support their momentum.
 
 <img width="1825" height="780" alt="AI_Job_Search_Center_homepage" src="https://github.com/user-attachments/assets/e9419d51-7d4b-411f-9873-b9e476a665c9" />
 
