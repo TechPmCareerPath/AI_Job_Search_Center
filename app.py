@@ -11,7 +11,7 @@ import os
 import csv
 import requests
 import pandas as pd
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 
 # --- GenAI & Pydantic Imports ---
 from google import genai
@@ -26,6 +26,7 @@ from query_builder import (
     COUNTRIES, DEFAULT_FORM, POSTED_WITHIN_DAYS, SENIORITY, VISA_OPTIONS, WORK_ARRANGEMENTS,
     form_to_payload, load_saved_payload, payload_to_form,
 )
+from job_signals import OPEN, job_badges, posting_statuses, skill_candidates
 from cv_pdf_editor import apply_edits, check_edits, embedded_font_resolver, find_blocks, google_font_resolver, load_fonts, render_pages
 
 # --- Page Configuration ---
@@ -47,6 +48,7 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "config.yaml")
 PROMPTS_FILE = os.path.join(CONFIG_DIR, "prompts.yaml")
 QUERY_FILE = os.path.join(CONFIG_DIR, "query.yaml")
 SAVED_QUERY_FILE = os.path.join(UPLOADS, "saved_queries.yaml")
+SEARCH_HISTORY_FILE = os.path.join(UPLOADS, "search_history.json")
 NEW_SEARCH = "➕ New search"
 
 # Holds all output from the app and same outputs visibile in the UI.
@@ -93,6 +95,24 @@ def load_saved_queries() -> dict:
     presets = load_yaml(QUERY_FILE).get("queries", {}) or {}
     user_saved = load_yaml(SAVED_QUERY_FILE).get("queries", {}) or {}
     return {name: load_saved_payload(raw) for name, raw in {**presets, **user_saved}.items()}
+
+def as_plain_text(text: str) -> str:
+    """Escapes "$" so Streamlit markdown shows "$5,000 - $7,000" instead of treating it as a math formula."""
+    return str(text).replace("$", "\\$")
+
+def load_search_history() -> dict:
+    """{saved search name: "YYYY-MM-DD HH:MM:SS" UTC of its last successful run}"""
+    if os.path.exists(SEARCH_HISTORY_FILE):
+        with open(SEARCH_HISTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def record_search_run(search_name: str, started_at: str):
+    history = load_search_history()
+    history[search_name] = started_at
+    os.makedirs(UPLOADS, exist_ok=True)
+    with open(SEARCH_HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=4)
 
 def apply_search_form(form: dict):
     """Puts form values into the Search Builder widgets (their keys are qb_<field>)."""
@@ -490,29 +510,73 @@ def format_date_posted(val):
     except Exception:
         return str(val)
 
+def post_jobs_search(query_payload: dict, jobs_api_key: str) -> dict:
+    """
+    POST /v1/jobs/search and return the JSON response. Retries once on a timeout or 502/503/504.
+    """
+    for attempt in (1, 2):
+        try:
+            resp = requests.post(
+                "https://api.jobspipe.dev/v1/jobs/search",
+                headers={"Authorization": "Bearer " + jobs_api_key},
+                json=query_payload,
+                timeout=45
+            )
+            if resp.status_code in (502, 503, 504) and attempt == 1:
+                continue
+            break
+        except requests.exceptions.Timeout:
+            if attempt == 2:
+                raise
+    resp.raise_for_status()
+    return resp.json()
+
+
+def refresh_posting_statuses(tracker_data: list, jobs_api_key: str) -> int:
+    """
+    Looks up every tracked JobsPipe job and stores whether its posting is still open.
+    Jobs added by hand (no JobsPipe id) are left alone. Returns how many jobs were checked.
+    """
+    job_ids = [str(item["job_id"]) for item in tracker_data if str(item.get("job_id") or "").strip()]
+    rows = []
+    for start in range(0, len(job_ids), 20):
+        chunk = job_ids[start:start + 20]
+        rows += post_jobs_search({"job_ids": chunk, "status": "any", "limit": 100}, jobs_api_key).get("data", [])
+
+    statuses = posting_statuses(rows, job_ids)
+    for item in tracker_data:
+        found = statuses.get(str(item.get("job_id")))
+        if found:
+            last_seen = f" · last seen {found['last_seen']}" if found["last_seen"] and found["status"] != OPEN else ""
+            item["posting_status"] = found["status"] + last_seen
+    return len(job_ids)
+
+
+def measure_skill_demand(search_payload: dict, jobs_api_key: str, job_rows: list) -> list:
+    """
+    For the skills that appear in the fetched jobs, counts how many postings in the whole search
+    ask for each one. Returns [(skill, share_of_postings_percent, postings)], most asked-for first.
+    """
+    count_payload = {k: v for k, v in search_payload.items() if k != "discovered_at_gte"}
+    count_payload.update({"include_total_results": True, "limit": 1})
+    total = post_jobs_search(count_payload, jobs_api_key)["metadata"]["total_results"] or 0
+    if not total:
+        return []
+
+    demand = []
+    for skill in skill_candidates(job_rows):
+        count = post_jobs_search({**count_payload, "skills_or": [skill]}, jobs_api_key)["metadata"]["total_results"] or 0
+        demand.append((skill.replace("-", " ").title(), round(100 * count / total), count))
+    return sorted(demand, key=lambda d: -d[1])
+
+
 def get_jobs(query_payload: dict, jobs_api_key: str, jobs_response_path: str, jobs_output_path: str):
     """
     Query JobsPipe API source for job listings using a dictionary payload.
     """
 
     try:
-        for attempt in (1, 2):
-            try:
-                resp = requests.post(
-                    "https://api.jobspipe.dev/v1/jobs/search",
-                    headers={"Authorization": "Bearer " + jobs_api_key},
-                    json=query_payload,
-                    timeout=45
-                )
-                if resp.status_code in (502, 503, 504) and attempt == 1:
-                    continue
-                break
-            except requests.exceptions.Timeout:
-                if attempt == 2:
-                    raise
-
-        resp.raise_for_status()
-        jobs = resp.json()
+        jobs = post_jobs_search(query_payload, jobs_api_key)
 
     except requests.exceptions.RequestException as e:
         # 1. Print detailed technical trace to the console/terminal where Streamlit is running.
@@ -543,7 +607,6 @@ def get_jobs(query_payload: dict, jobs_api_key: str, jobs_response_path: str, jo
         "company": "Company",
         "location": "Location",
         "date_posted": "Date Posted",
-        "reposted": "Reposted?",
         "employment_statuses": "Employment type",
         "seniority": "Seniority",
         "url": "URL"
@@ -551,7 +614,7 @@ def get_jobs(query_payload: dict, jobs_api_key: str, jobs_response_path: str, jo
 
     df_jobs[[
         'Title', 'Company', 'Location', 'Date Posted', 
-        'Reposted?', 'Employment type', 'Seniority', 'URL'
+        'Employment type', 'Seniority', 'URL'
     ]].to_csv(jobs_output_path, index=False, encoding='utf-8')
 
     return jobs
@@ -1141,7 +1204,29 @@ with tab_recruiter:
             help="Each job costs one JobsPipe credit, and all of them are sent to Gemini for scoring."
         )
 
-    selected_query_payload = form_to_payload({field: st.session_state[f"qb_{field}"] for field in DEFAULT_FORM})
+    col_o1, col_o2 = st.columns(2)
+    with col_o1:
+        st.checkbox("English-language postings only", key="qb_english_only",
+                    help="Keeps postings written in English. Useful when searching abroad. A posting in English can still ask for the local language, so check the description.")
+        st.checkbox("Hide recruitment agencies", key="qb_hide_agencies",
+                    help="Leaves out postings from staffing agencies and job brokers, so you apply to employers directly.")
+    with col_o2:
+        st.checkbox("Hide likely ghost jobs", key="qb_hide_ghost_jobs",
+                    help="Leaves out postings JobsPipe rates as likely ghost jobs (evergreen or never filled). Postings without a rating are kept.")
+        last_run = load_search_history().get(st.session_state.qb_preset)
+        new_only = st.checkbox(
+            "Only jobs new since my last run of this search", key="qb_new_only",
+            disabled=last_run is None,
+            help="Shows only postings JobsPipe found after you last ran this saved search, so you don't see the same jobs every week."
+                 if last_run else "Save this search and run it once to enable this."
+        )
+        if last_run:
+            st.caption(f"Last run: {last_run} UTC")
+
+    selected_query_payload = form_to_payload(
+        {field: st.session_state[f"qb_{field}"] for field in DEFAULT_FORM},
+        discovered_since=last_run if new_only else None
+    )
     if not selected_query_payload.get("job_title_or"):
         st.caption("⚠️ Add at least one job title so the search stays focused.")
         selected_query_payload = None
@@ -1217,7 +1302,10 @@ with tab_recruiter:
                         st.write(msg_2)
                         st.session_state.last_analysis_logs.append(msg_2)
 
+                        search_started_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
                         get_jobs(selected_query_payload, jobspipe_key, JOBS_RESPONSE, JOBS_OUTPUT)
+                        if st.session_state.qb_preset != NEW_SEARCH:
+                            record_search_run(st.session_state.qb_preset, search_started_at)
                         msg_2 = "✓ Step 2 of 4: Retrieved fresh job postings from JobsPipe API."
                     elif os.path.exists(JOBS_RESPONSE):
                         msg_2 = f"ℹ️ Step 2 of 4: No JobsPipe API key provided; reusing local `{JOBS_RESPONSE}`"
@@ -1305,13 +1393,38 @@ with tab_recruiter:
                             job_details_map[jid] = {
                                 "url": rj.get("url", ""),
                                 "company": rj.get("company", ""),
-                                "description": rj.get("description", "")
+                                "description": rj.get("description", ""),
+                                "row": rj
                             }
             except Exception as e:
                 st.caption(f"Note: Could not map details from {JOBS_RESPONSE}: {e}")
 
         st.json(match_results.get("metadata", {}))
         
+        with st.expander("📊 What skills does this market ask for?"):
+            st.caption("Counts how many postings in your whole search (not just the jobs shown) ask for each skill found in your results. "
+                       "Uses about one JobsPipe credit per skill.")
+            if st.button("Measure skill demand", key="measure_skill_demand",
+                         disabled=not (jobspipe_key and selected_query_payload and job_details_map)):
+                try:
+                    with st.spinner("Counting postings per skill..."):
+                        rows = [info["row"] for info in job_details_map.values()]
+                        st.session_state.skill_demand = measure_skill_demand(selected_query_payload, jobspipe_key, rows)
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ JobsPipe skill demand request failed: {e}")
+                    st.error("⚠️ Couldn't measure skill demand right now. Please try again later.")
+
+            if st.session_state.get("skill_demand"):
+                st.dataframe(
+                    pd.DataFrame(st.session_state.skill_demand, columns=["Skill", "Share of postings", "Postings"]),
+                    hide_index=True,
+                    width="stretch",
+                    column_config={
+                        "Share of postings": st.column_config.ProgressColumn("Share of postings", format="%d%%", min_value=0, max_value=100),
+                    },
+                )
+                st.caption("Tip: skills with a high share that are missing from your resume are worth learning or making more visible.")
+
         matches = match_results.get("matched_positions", [])
         if not matches:
             st.info("No matching jobs found above the Match Threshold (%) set in the System Prompts & Config section.")
@@ -1332,7 +1445,10 @@ with tab_recruiter:
             actual_company = mapped_info.get("company") or job.get("company", "Unknown Company")
 
             with st.expander(f"⭐ {job.get('match_percentage')}% Match | {job.get('title')} ({actual_company})"):
-                
+                badges = job_badges(mapped_info.get("row", {}))
+                if badges:
+                    st.caption(as_plain_text(" · ".join(badges)))
+
                 if source_url:
                     st.markdown(
                         f"**Source URL:** <a href='{source_url}' target='_blank' title='{source_url}' "
@@ -1545,11 +1661,11 @@ with tab_recruiter:
                         if report["applied"]:
                             st.markdown("**What changed**")
                             for change in report["applied"]:
-                                st.markdown(f"~~{change['old']}~~  \n→ {change['new']}".replace("$", "\\$"))
+                                st.markdown(f"~~{as_plain_text(change['old'])}~~  \n→ {as_plain_text(change['new'])}")
                         if report["skipped"]:
                             st.markdown("**Suggested but not applied**")
                             for skip in report["skipped"]:
-                                st.warning(f"{skip['new']}  \n_Why: {skip['reason']}_".replace("$", "\\$"))
+                                st.warning(f"{as_plain_text(skip['new'])}  \n_Why: {as_plain_text(skip['reason'])}_")
 
     else:
         st.info("No match output found. Select your resume and build your search above, then click 'Find Job Matches with AI'.")
@@ -1610,7 +1726,23 @@ with tab_recruiter:
             st.session_state.tracker_original = json.loads(json.dumps(st.session_state.tracker_data))
 
         if st.session_state.tracker_data:
+            if st.button("🔄 Refresh posting status", disabled=not jobspipe_key,
+                         help="Checks with JobsPipe whether each job you applied to is still open. "
+                              "\"Closed\" means the posting was confirmed taken down; \"May be closed\" means it hasn't been seen for a while."):
+                try:
+                    with st.spinner("Checking your postings..."):
+                        checked = refresh_posting_statuses(st.session_state.tracker_data, jobspipe_key)
+                    save_tracker(st.session_state.tracker_data)
+                    st.session_state.tracker_original = json.loads(json.dumps(st.session_state.tracker_data))
+                    st.toast(f"Checked {checked} posting(s).", icon="🔄")
+                    st.rerun()
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ JobsPipe status refresh failed: {e}")
+                    st.error("⚠️ Couldn't check posting status right now. Please try again later.")
+
             df = pd.DataFrame(st.session_state.tracker_data)
+            if "posting_status" not in df.columns:
+                df["posting_status"] = ""
 
             # Ensure followup_date exists in DataFrame even if legacy records lack it
             if "followup_date" not in df.columns:
@@ -1648,6 +1780,7 @@ with tab_recruiter:
                     "date_applied", 
                     "followup_date", 
                     "status", 
+                    "posting_status",
                     "notes", 
                     "url"
                 ],
@@ -1658,6 +1791,7 @@ with tab_recruiter:
                     "applied_date": st.column_config.DateColumn("Date Applied", format="YYYY-MM-DD"),
                     "followup_date": st.column_config.DateColumn("Follow-up Date", format="YYYY-MM-DD", help="Target date you expect to hear back from the hiring company OR the date you will need to do something. If no further follow-ups, like you got a rejection :-( then delete the Follow-up Date which sill set it to None."),
                     "status": st.column_config.TextColumn("Status", help="Add your own job hunting status here. Suggest to create as few labels as possible. Also, use labels consistently."),
+                    "posting_status": st.column_config.TextColumn("Posting", disabled=True, help="Use \"Refresh posting status\" above to check whether the job posting is still open."),
                     "notes": st.column_config.TextColumn("Notes", width="medium", help="Add details like recruiter feedback, key missing skills, or interview progress. The more details you add the richer insights the AI Weekly Plan Advisor will provide!"),
                     "url": st.column_config.LinkColumn("Job Link", help="Click to open the job posting"),
                 },
