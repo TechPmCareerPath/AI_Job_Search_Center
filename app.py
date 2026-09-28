@@ -11,7 +11,7 @@ import os
 import csv
 import requests
 import pandas as pd
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 
 # --- GenAI & Pydantic Imports ---
 from google import genai
@@ -21,6 +21,13 @@ from google.genai.errors import APIError
 from pydantic import BaseModel, Field
 import pdfplumber
 import docx
+
+from query_builder import (
+    COUNTRIES, DEFAULT_FORM, POSTED_WITHIN_DAYS, SENIORITY, VISA_OPTIONS, WORK_ARRANGEMENTS,
+    form_to_payload, load_saved_payload, payload_to_form,
+)
+from job_signals import OPEN, job_badges, posting_statuses, skill_candidates
+from cv_pdf_editor import apply_edits, check_edits, find_blocks, google_font_resolver, load_fonts, render_pages
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -34,11 +41,15 @@ st.set_page_config(
 # Holds all configs the user could update via the UI.
 RESUME_DIR = "resume"
 CONFIG_DIR = "config"
-UPLOADS = "uploads"		# Currently stores the uploaded resume and query.yaml.
+UPLOADS = "uploads"
 
 # Files to configure the app.
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.yaml")
 PROMPTS_FILE = os.path.join(CONFIG_DIR, "prompts.yaml")
+QUERY_FILE = os.path.join(CONFIG_DIR, "query.yaml")
+SAVED_QUERY_FILE = os.path.join(UPLOADS, "saved_queries.yaml")
+SEARCH_HISTORY_FILE = os.path.join(UPLOADS, "search_history.json")
+NEW_SEARCH = "➕ New search"
 
 # Holds all output from the app and same outputs visibile in the UI.
 OUTPUT_DIR = "output"
@@ -48,6 +59,7 @@ AGENT_OUTPUT = os.path.join(OUTPUT_DIR, "agent_job_analysis.json")
 SKIPPED_DB = os.path.join(OUTPUT_DIR, "skipped_jobs.json") 	# Persist the jobs that were skipped, aka marked as No by the user, across sessions.
 TRACKER_DB = os.path.join(OUTPUT_DIR, "tracker_db.json")
 PLAN_DB = os.path.join(OUTPUT_DIR, "weekly_plan.json")		# Persist the weekly plan across sessions.
+FONT_CACHE = os.path.join(OUTPUT_DIR, "fonts")
 ADVISOR_OUTPUT = os.path.join(OUTPUT_DIR, "agent_weekly_advisor.json")	# The on-demand Application Tracker Output saved across sessions. 
 
 
@@ -77,6 +89,53 @@ def load_yaml(filepath):
 def save_yaml(filepath, data):
     with open(filepath, "w", encoding="utf-8") as f:
         yaml.dump(data, f, default_flow_style=False)
+
+def load_saved_queries() -> dict:
+    """Preset searches from config/query.yaml plus the user's own saved searches (which win on name clashes)."""
+    presets = load_yaml(QUERY_FILE).get("queries", {}) or {}
+    user_saved = load_yaml(SAVED_QUERY_FILE).get("queries", {}) or {}
+    return {name: load_saved_payload(raw) for name, raw in {**presets, **user_saved}.items()}
+
+def as_plain_text(text: str) -> str:
+    """Escapes "$" so Streamlit markdown shows "$5,000 - $7,000" instead of treating it as a math formula."""
+    return str(text).replace("$", "\\$")
+
+def load_search_history() -> dict:
+    """{saved search name: "YYYY-MM-DD HH:MM:SS" UTC of its last successful run}"""
+    if os.path.exists(SEARCH_HISTORY_FILE):
+        with open(SEARCH_HISTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def record_search_run(search_name: str, started_at: str):
+    history = load_search_history()
+    history[search_name] = started_at
+    os.makedirs(UPLOADS, exist_ok=True)
+    with open(SEARCH_HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=4)
+
+def apply_search_form(form: dict):
+    """Puts form values into the Search Builder widgets (their keys are qb_<field>)."""
+    for field, value in form.items():
+        st.session_state[f"qb_{field}"] = value
+
+def load_saved_search_into_form(saved_queries: dict):
+    """on_change callback of the saved-search picker."""
+    name = st.session_state.qb_preset
+    apply_search_form(DEFAULT_FORM if name == NEW_SEARCH else payload_to_form(saved_queries[name]))
+
+def load_model_config():
+    """Returns (selected_model, temperature) from config.yaml."""
+    model_cfg = load_yaml(CONFIG_FILE).get("model_config", {})
+    return model_cfg.get("selected_model", "gemini-2.5-flash"), float(model_cfg.get("temperature", 0.2))
+
+def job_context(job_info: dict) -> str:
+    """The matched job's details, as given to the resume tailoring prompts."""
+    return f"""Title: {job_info.get('title', 'N/A')}
+Company: {job_info.get('company', 'Unknown Company')}
+Match Reasoning: {job_info.get('reasoning', '')}
+Key Matching Skills: {', '.join(job_info.get('key_matching_skills', []))}
+Missing Skills to Address: {', '.join(job_info.get('missing_skills', []))}"""
 
 def load_tracker():
     if os.path.exists(TRACKER_DB):
@@ -119,10 +178,7 @@ def get_weekly_plan_advice(tracker_file_path: str, plan_file_path: str) -> str:
         return None, err_msg
 
     # Load model configs.
-    config_data = load_yaml(CONFIG_FILE) if os.path.exists(CONFIG_FILE) else {}
-    model_cfg = config_data.get("model_config", {})
-    selected_model = model_cfg.get("selected_model", "gemini-2.5-flash")
-    temperature = float(model_cfg.get("temperature", 0.2))
+    selected_model, temperature = load_model_config()
 
     # Read tracker data
     tracker_data = []
@@ -204,15 +260,11 @@ def generate_tailored_resume(resume_file_path: str, job_info: dict) -> str:
         st.error(f"⚠️ {err_msg}")
         return None, err_msg
 
-    # Read base resume text
-    with open(resume_file_path, "r", encoding="utf-8") as f:
+    with open(load_resume_text(resume_file_path), "r", encoding="utf-8") as f:
         resume_text = f.read()
 
     # Load model configuration and prompt template
-    config_data = load_yaml(CONFIG_FILE) if os.path.exists(CONFIG_FILE) else {}
-    model_cfg = config_data.get("model_config", {})
-    selected_model = model_cfg.get("selected_model", "gemini-2.5-flash")
-    temperature = float(model_cfg.get("temperature", 0.2))
+    selected_model, temperature = load_model_config()
 
     prompts_data = load_yaml(PROMPTS_FILE) if os.path.exists(PROMPTS_FILE) else {}
     prompts_dict = prompts_data.get("system_prompts", {})
@@ -228,11 +280,7 @@ def generate_tailored_resume(resume_file_path: str, job_info: dict) -> str:
 {resume_text}
 
 --- TARGET JOB DETAILS ---
-Title: {job_info.get('title', 'N/A')}
-Company: {job_info.get('company', 'Unknown Company')}
-Match Reasoning: {job_info.get('reasoning', '')}
-Key Matching Skills: {', '.join(job_info.get('key_matching_skills', []))}
-Missing Skills to Address: {', '.join(job_info.get('missing_skills', []))}
+{job_context(job_info)}
 """
 
     client = genai.Client()
@@ -307,6 +355,94 @@ class JobMatch(BaseModel):
 class MatchAnalysisResponse(BaseModel):
     matched_positions: list[JobMatch]
 
+MAX_CV_EDITS = 8
+
+class CvBlockEdit(BaseModel):
+    block_id: int = Field(description="The [id] of the resume block being rewritten")
+    new_text: str = Field(description="The rewritten text for that block")
+
+class CvEditsResponse(BaseModel):
+    edits: list[CvBlockEdit]
+
+
+def ask_gemini_for_cv_edits(prompt: str) -> dict:
+    """Sends a prompt that answers with CvEditsResponse JSON. Returns {block_id: new_text}."""
+    selected_model, temperature = load_model_config()
+    client = genai.Client()
+    response = client.models.generate_content(
+        model=selected_model,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=CvEditsResponse,
+            temperature=temperature,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
+        ),
+    )
+    return {e.block_id: e.new_text for e in CvEditsResponse.model_validate_json(response.text).edits}
+
+
+def generate_tailored_cv_pdf(resume_file_path: str, job_info: dict, job_description: str, out_path: str):
+    """
+    Rewrites some bullets and the summary INSIDE the original PDF resume, so the tailored CV keeps
+    the candidate's own design. Gemini chooses the blocks and rewrites them; cv_pdf_editor checks
+    each rewrite and writes it back in the original font, size and colour.
+    Returns tuple: ({"report", "pdf_bytes", "pages"}, error_message)
+    """
+    blocks = find_blocks(resume_file_path)
+    if not blocks:
+        return None, "No editable text found in this PDF (it may be a scanned image)."
+
+    prompts_data = load_yaml(PROMPTS_FILE)
+    tailor_prompt = prompts_data.get("system_prompts", {}).get(
+        "cv_pdf_tailor",
+        "You are an expert resume writer. Honestly rewrite a few resume blocks to fit the target job, "
+        "keeping every number and specific, and never exceeding each block's max chars."
+    )
+
+    block_list = "\n".join(f"[{b['id']}] (max {b['max_chars']} chars) {b['text']}" for b in blocks)
+    prompt = f"""{tailor_prompt}
+Rewrite at most {MAX_CV_EDITS} blocks.
+
+--- TARGET JOB DETAILS ---
+{job_context(job_info)}
+Job Description:
+{(job_description or 'Not available.')[:6000]}
+
+--- RESUME BLOCKS ---
+{block_list}
+"""
+
+    try:
+        edits = dict(list(ask_gemini_for_cv_edits(prompt).items())[:MAX_CV_EDITS])
+        fonts = load_fonts(blocks, google_font_resolver(FONT_CACHE))
+
+        _, rejected = check_edits(blocks, edits, fonts)
+        too_long = [r for r in rejected if "lines_needed" in r]
+        if too_long:
+            shorten_prompt = (
+                "Each resume line below is too long for the space it must fit. Shorten each one by "
+                "removing words, NOT by abbreviating: write 'and' not '&', 'two' not '2'. Keep every "
+                "number, tool and specific; cut generic words first.\n\n" + "\n".join(
+                    f"[{r['id']}] (at most {len(r['new']) * r['lines_available'] // r['lines_needed']} chars) {r['new']}"
+                    for r in too_long
+                )
+            )
+            shortened = ask_gemini_for_cv_edits(shorten_prompt)
+            edits.update({i: text for i, text in shortened.items() if i in edits})
+
+        report = apply_edits(resume_file_path, blocks, edits, fonts, out_path)
+        with open(out_path, "rb") as f:
+            pdf_bytes = f.read()
+        return {"report": report, "pdf_bytes": pdf_bytes, "pages": render_pages(pdf_bytes)}, None
+
+    except APIError as api_err:
+        print(f"❌ Gemini API Error in generate_tailored_cv_pdf(). {api_err}")
+        return None, f"Gemini API Error ({api_err.code}): {api_err.message}"
+
+    except Exception as e:
+        print(f"❌ Unexpected Error in generate_tailored_cv_pdf(): {e}")
+        return None, f"Failed to build the tailored PDF: {str(e)}"
 
 
 def load_resume_text(file_path: str) -> str:
@@ -352,21 +488,73 @@ def format_date_posted(val):
     except Exception:
         return str(val)
 
+def post_jobs_search(query_payload: dict, jobs_api_key: str) -> dict:
+    """
+    POST /v1/jobs/search and return the JSON response. Retries once on a timeout or 502/503/504.
+    """
+    for attempt in (1, 2):
+        try:
+            resp = requests.post(
+                "https://api.jobspipe.dev/v1/jobs/search",
+                headers={"Authorization": "Bearer " + jobs_api_key},
+                json=query_payload,
+                timeout=45
+            )
+            if resp.status_code in (502, 503, 504) and attempt == 1:
+                continue
+            break
+        except requests.exceptions.Timeout:
+            if attempt == 2:
+                raise
+    resp.raise_for_status()
+    return resp.json()
+
+
+def refresh_posting_statuses(tracker_data: list, jobs_api_key: str) -> int:
+    """
+    Looks up every tracked JobsPipe job and stores whether its posting is still open.
+    Jobs added by hand (no JobsPipe id) are left alone. Returns how many jobs were checked.
+    """
+    job_ids = [str(item["job_id"]) for item in tracker_data if str(item.get("job_id") or "").strip()]
+    rows = []
+    for start in range(0, len(job_ids), 20):
+        chunk = job_ids[start:start + 20]
+        rows += post_jobs_search({"job_ids": chunk, "status": "any", "limit": 100}, jobs_api_key).get("data", [])
+
+    statuses = posting_statuses(rows, job_ids)
+    for item in tracker_data:
+        found = statuses.get(str(item.get("job_id")))
+        if found:
+            last_seen = f" · last seen {found['last_seen']}" if found["last_seen"] and found["status"] != OPEN else ""
+            item["posting_status"] = found["status"] + last_seen
+    return len(job_ids)
+
+
+def measure_skill_demand(search_payload: dict, jobs_api_key: str, job_rows: list) -> list:
+    """
+    For the skills that appear in the fetched jobs, counts how many postings in the whole search
+    ask for each one. Returns [(skill, share_of_postings_percent, postings)], most asked-for first.
+    """
+    count_payload = {k: v for k, v in search_payload.items() if k != "discovered_at_gte"}
+    count_payload.update({"include_total_results": True, "limit": 1})
+    total = post_jobs_search(count_payload, jobs_api_key)["metadata"]["total_results"] or 0
+    if not total:
+        return []
+
+    demand = []
+    for skill in skill_candidates(job_rows):
+        count = post_jobs_search({**count_payload, "skills_or": [skill]}, jobs_api_key)["metadata"]["total_results"] or 0
+        demand.append((skill.replace("-", " ").title(), round(100 * count / total), count))
+    return sorted(demand, key=lambda d: -d[1])
+
+
 def get_jobs(query_payload: dict, jobs_api_key: str, jobs_response_path: str, jobs_output_path: str):
     """
     Query JobsPipe API source for job listings using a dictionary payload.
     """
 
     try:
-        resp = requests.post(
-            "https://api.jobspipe.dev/v1/jobs/search",
-            headers={"Authorization": "Bearer " + jobs_api_key},
-            json=query_payload, 
-            timeout=10
-        )
-
-        resp.raise_for_status()
-        jobs = resp.json()
+        jobs = post_jobs_search(query_payload, jobs_api_key)
 
     except requests.exceptions.RequestException as e:
         # 1. Print detailed technical trace to the console/terminal where Streamlit is running.
@@ -397,7 +585,6 @@ def get_jobs(query_payload: dict, jobs_api_key: str, jobs_response_path: str, jo
         "company": "Company",
         "location": "Location",
         "date_posted": "Date Posted",
-        "reposted": "Reposted?",
         "employment_statuses": "Employment type",
         "seniority": "Seniority",
         "url": "URL"
@@ -405,7 +592,7 @@ def get_jobs(query_payload: dict, jobs_api_key: str, jobs_response_path: str, jo
 
     df_jobs[[
         'Title', 'Company', 'Location', 'Date Posted', 
-        'Reposted?', 'Employment type', 'Seniority', 'URL'
+        'Employment type', 'Seniority', 'URL'
     ]].to_csv(jobs_output_path, index=False, encoding='utf-8')
 
     return jobs
@@ -431,10 +618,9 @@ def analyze_job_matches(json_file_path, resume_file_path):
         resume_text = f.read()
 
     # 1. Load match_threshold, selected_model, and temperature dynamically from config.yaml
-    config_data = load_yaml(CONFIG_FILE) if os.path.exists(CONFIG_FILE) else {}
+    config_data = load_yaml(CONFIG_FILE)
     model_cfg = config_data.get("model_config", {})
-    selected_model = model_cfg.get("selected_model", "gemini-2.5-flash")
-    temperature = float(model_cfg.get("temperature", 0.2))
+    selected_model, temperature = load_model_config()
     raw_threshold = model_cfg.get("match_threshold", config_data.get("match_threshold", 75))
 
     # Format threshold string (e.g., handles numeric 75 -> "75%")
@@ -936,77 +1122,107 @@ with tab_recruiter:
 
     st.divider()
 
-    # --------------------------------------------------------------------------
-    # Step 2: Select JobsPipe Query YAML & Target Preset
-    # --------------------------------------------------------------------------
-    st.subheader("2. Select Job Source Query")
+    st.subheader("2. Build Your Job Search")
 
-    uploaded_yaml = st.file_uploader(
-        "Upload a Query YAML file (.yaml, .yml)", 
-        type=["yaml", "yml"],
-        key="query_yaml_uploader"
+    saved_queries = load_saved_queries()
+
+    if "qb_titles" not in st.session_state:
+        apply_search_form(DEFAULT_FORM)
+
+    st.selectbox(
+        "Start from a saved search",
+        [NEW_SEARCH] + list(saved_queries.keys()),
+        key="qb_preset",
+        on_change=load_saved_search_into_form,
+        args=(saved_queries,),
+        help="Loads a saved search into the form below. Change anything, then run it or save it under a new name."
     )
 
-    # State tracking: Only save and toast ONCE per new YAML upload
-    if "last_uploaded_yaml" not in st.session_state:
-        st.session_state.last_uploaded_yaml = None
-
-    if uploaded_yaml is not None and st.session_state.last_uploaded_yaml != uploaded_yaml.name:
-        os.makedirs("config", exist_ok=True)
-        save_path = os.path.join(UPLOADS, uploaded_yaml.name)
-        with open(save_path, "wb") as f:
-            f.write(uploaded_yaml.getbuffer())
-        st.session_state.last_uploaded_yaml = uploaded_yaml.name
-        st.toast(f"Saved '{uploaded_yaml.name}' to '{UPLOADS}'.", icon="⚙️")
-
-    # Scan both root (.) and config/ subdirectories for query YAML files
-    yaml_files = []
-    for search_dir in [".", "config"]:
-        if os.path.exists(search_dir):
-            for f in os.listdir(search_dir):
-                if f.endswith((".yaml", ".yml")) and f not in [CONFIG_FILE, PROMPTS_FILE]:
-                    full_path = os.path.normpath(os.path.join(search_dir, f))
-                    if full_path not in yaml_files:
-                        yaml_files.append(full_path)
-
-    default_yaml_idx = 0
-    if uploaded_yaml:
-        uploaded_norm_path = os.path.normpath(os.path.join("config", uploaded_yaml.name))
-        if uploaded_norm_path in yaml_files:
-            default_yaml_idx = yaml_files.index(uploaded_norm_path)
-
-    col_y1, col_y2 = st.columns(2)
-
-    with col_y1:
-        selected_yaml_file = st.selectbox(
-            "Choose Job Query YAML File", 
-            yaml_files if yaml_files else ["No YAML query files found"],
-            index=default_yaml_idx if yaml_files else 0
+    col_q1, col_q2 = st.columns(2)
+    with col_q1:
+        st.text_input(
+            "Job titles", key="qb_titles", placeholder="marketing, growth, customer success",
+            help="Comma separated. A job matches if its title contains ANY of these."
+        )
+        st.multiselect("Countries", list(COUNTRIES.keys()), key="qb_countries")
+        st.multiselect("Seniority", list(SENIORITY.keys()), key="qb_seniority")
+        st.checkbox(
+            "Also show jobs that don't state a level", key="qb_include_unlabeled_seniority",
+            help="Most postings don't say their seniority. Unticking this hides them."
+        )
+        st.radio(
+            "Visa sponsorship", VISA_OPTIONS, key="qb_visa",
+            help="Very few postings mention sponsorship at all. 'Hide jobs that rule out sponsorship' "
+                 "drops the ones saying 'no sponsorship' or 'citizens / PR only' and keeps the rest."
+        )
+    with col_q2:
+        st.text_input(
+            "Exclude titles containing", key="qb_exclude_titles", placeholder="intern, sales",
+            help="Comma separated. Jobs whose title contains ANY of these are dropped."
+        )
+        st.text_input(
+            "Cities (optional)", key="qb_cities", placeholder="Austin, Dallas",
+            help="Comma separated. Leave empty to search the whole country."
+        )
+        st.multiselect("Work arrangement", list(WORK_ARRANGEMENTS.keys()), key="qb_work_arrangement")
+        st.number_input(
+            "Minimum annual salary (USD, 0 = any)", min_value=0, step=5000, key="qb_min_salary_usd"
+        )
+        st.checkbox(
+            "Also show jobs that don't list a salary", key="qb_include_no_salary",
+            help="Only applies when a minimum salary is set. Many postings don't publish pay."
         )
 
-    selected_query_payload = None
+    col_q3, col_q4 = st.columns(2)
+    with col_q3:
+        st.select_slider("Posted within (days)", POSTED_WITHIN_DAYS, key="qb_posted_within_days")
+    with col_q4:
+        st.slider(
+            "Number of jobs to fetch", 5, 50, step=5, key="qb_limit",
+            help="Each job costs one JobsPipe credit, and all of them are sent to Gemini for scoring."
+        )
 
-    if selected_yaml_file and selected_yaml_file != "No YAML query files found":
-        yaml_data = load_yaml(selected_yaml_file)
-        queries = yaml_data.get("queries", {}) if isinstance(yaml_data, dict) else {}
+    col_o1, col_o2 = st.columns(2)
+    with col_o1:
+        st.checkbox("English-language postings only", key="qb_english_only",
+                    help="Keeps postings written in English. Useful when searching abroad. A posting in English can still ask for the local language, so check the description.")
+        st.checkbox("Hide recruitment agencies", key="qb_hide_agencies",
+                    help="Leaves out postings from staffing agencies and job brokers, so you apply to employers directly.")
+    with col_o2:
+        st.checkbox("Hide likely ghost jobs", key="qb_hide_ghost_jobs",
+                    help="Leaves out postings JobsPipe rates as likely ghost jobs (evergreen or never filled). Postings without a rating are kept.")
+        last_run = load_search_history().get(st.session_state.qb_preset)
+        new_only = st.checkbox(
+            "Only jobs new since my last run of this search", key="qb_new_only",
+            disabled=last_run is None,
+            help="Shows only postings JobsPipe found after you last ran this saved search, so you don't see the same jobs every week."
+                 if last_run else "Save this search and run it once to enable this."
+        )
+        if last_run:
+            st.caption(f"Last run: {last_run} UTC")
 
-        with col_y2:
-            query_names = list(queries.keys())
-            selected_query_name = st.selectbox(
-                "Choose Job Title to Query", 
-                query_names if query_names else ["No queries found in file"]
-            )
+    selected_query_payload = form_to_payload(
+        {field: st.session_state[f"qb_{field}"] for field in DEFAULT_FORM},
+        discovered_since=last_run if new_only else None
+    )
+    if not selected_query_payload.get("job_title_or"):
+        st.caption("⚠️ Add at least one job title so the search stays focused.")
+        selected_query_payload = None
 
-        if selected_query_name and selected_query_name != "No queries found in file":
-            raw_query = queries[selected_query_name]
-            
-            if isinstance(raw_query, str):
-                selected_query_payload = json.loads(raw_query)
-            elif isinstance(raw_query, dict):
-                selected_query_payload = raw_query
+    col_s1, col_s2 = st.columns([3, 1], vertical_alignment="bottom")
+    with col_s1:
+        save_name = st.text_input("Save this search as", placeholder="marketing singapore")
+    with col_s2:
+        if st.button("💾 Save search", disabled=not (save_name.strip() and selected_query_payload)):
+            os.makedirs(UPLOADS, exist_ok=True)
+            user_queries = load_yaml(SAVED_QUERY_FILE)
+            user_queries.setdefault("queries", {})[save_name.strip()] = selected_query_payload
+            save_yaml(SAVED_QUERY_FILE, user_queries)
+            st.toast(f"Saved '{save_name.strip()}'.", icon="💾")
 
-            with st.expander("👁️ View Selected Job Query", expanded=False):
-                st.json(selected_query_payload)
+    if selected_query_payload:
+        with st.expander("👁️ View JobsPipe request", expanded=False):
+            st.json(selected_query_payload)
 
     st.divider()
 
@@ -1045,7 +1261,7 @@ with tab_recruiter:
             st.session_state.is_analyzing = False
             st.rerun()
         elif selected_query_payload is None:
-            st.session_state.last_analysis_error = "⚠️ Please select a valid query preset from your Query.YAML file."
+            st.session_state.last_analysis_error = "⚠️ Please add at least one job title in the Search Builder."
             st.session_state.is_analyzing = False
             st.rerun()
         else:
@@ -1066,7 +1282,10 @@ with tab_recruiter:
                         st.write(msg_2)
                         st.session_state.last_analysis_logs.append(msg_2)
 
+                        search_started_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
                         get_jobs(selected_query_payload, jobspipe_key, JOBS_RESPONSE, JOBS_OUTPUT)
+                        if st.session_state.qb_preset != NEW_SEARCH:
+                            record_search_run(st.session_state.qb_preset, search_started_at)
                         msg_2 = "✓ Step 2 of 4: Retrieved fresh job postings from JobsPipe API."
                     elif os.path.exists(JOBS_RESPONSE):
                         msg_2 = f"ℹ️ Step 2 of 4: No JobsPipe API key provided; reusing local `{JOBS_RESPONSE}`"
@@ -1153,13 +1372,39 @@ with tab_recruiter:
                         if jid:
                             job_details_map[jid] = {
                                 "url": rj.get("url", ""),
-                                "company": rj.get("company", "")
+                                "company": rj.get("company", ""),
+                                "description": rj.get("description", ""),
+                                "row": rj
                             }
             except Exception as e:
                 st.caption(f"Note: Could not map details from {JOBS_RESPONSE}: {e}")
 
         st.json(match_results.get("metadata", {}))
         
+        with st.expander("📊 What skills does this market ask for?"):
+            st.caption("Counts how many postings in your whole search (not just the jobs shown) ask for each skill found in your results. "
+                       "Uses about one JobsPipe credit per skill.")
+            if st.button("Measure skill demand", key="measure_skill_demand",
+                         disabled=not (jobspipe_key and selected_query_payload and job_details_map)):
+                try:
+                    with st.spinner("Counting postings per skill..."):
+                        rows = [info["row"] for info in job_details_map.values()]
+                        st.session_state.skill_demand = measure_skill_demand(selected_query_payload, jobspipe_key, rows)
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ JobsPipe skill demand request failed: {e}")
+                    st.error("⚠️ Couldn't measure skill demand right now. Please try again later.")
+
+            if st.session_state.get("skill_demand"):
+                st.dataframe(
+                    pd.DataFrame(st.session_state.skill_demand, columns=["Skill", "Share of postings", "Postings"]),
+                    hide_index=True,
+                    width="stretch",
+                    column_config={
+                        "Share of postings": st.column_config.ProgressColumn("Share of postings", format="%d%%", min_value=0, max_value=100),
+                    },
+                )
+                st.caption("Tip: skills with a high share that are missing from your resume are worth learning or making more visible.")
+
         matches = match_results.get("matched_positions", [])
         if not matches:
             st.info("No matching jobs found above the Match Threshold (%) set in the System Prompts & Config section.")
@@ -1180,7 +1425,10 @@ with tab_recruiter:
             actual_company = mapped_info.get("company") or job.get("company", "Unknown Company")
 
             with st.expander(f"⭐ {job.get('match_percentage')}% Match | {job.get('title')} ({actual_company})"):
-                
+                badges = job_badges(mapped_info.get("row", {}))
+                if badges:
+                    st.caption(as_plain_text(" · ".join(badges)))
+
                 if source_url:
                     st.markdown(
                         f"**Source URL:** <a href='{source_url}' target='_blank' title='{source_url}' "
@@ -1208,6 +1456,10 @@ with tab_recruiter:
                 col_btn1, col_btn2 = st.columns(2)
                 tailored_key = f"tailored_resume_{job_id_str}"
                 error_key = f"tailor_error_{job_id_str}"
+                pdf_key = f"tailored_pdf_{job_id_str}"
+                pdf_error_key = f"tailor_pdf_error_{job_id_str}"
+                company_clean = actual_company.replace(" ", "_").strip()
+                resume_is_pdf = selected_resume.lower().endswith(".pdf")
 
                 with col_btn1:
                     if st.button("✨ Generate Tailored Resume", key=f"tailor_{idx}"):
@@ -1233,6 +1485,26 @@ with tab_recruiter:
 
                             except Exception as e:
                                 st.session_state[error_key] = f"⚠️ API Error generating tailored resume: {str(e)}"
+
+                    if resume_is_pdf and st.button("🎨 Tailor My PDF Resume", key=f"tailor_pdf_{idx}",
+                                                   help="Rewrites a few bullets inside your own PDF, keeping its design, and lists every change."):
+                        if pdf_error_key in st.session_state:
+                            del st.session_state[pdf_error_key]
+                        os.environ["GEMINI_API_KEY"] = gemini_key if gemini_key else ""
+                        os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+                        with st.spinner(f"Tailoring your PDF resume for {job.get('title')}..."):
+                            pdf_result, pdf_error = generate_tailored_cv_pdf(
+                                os.path.join(UPLOADS, selected_resume),
+                                job,
+                                mapped_info.get("description", ""),
+                                os.path.join(OUTPUT_DIR, f"Tailored_Resume_{company_clean}.pdf")
+                            )
+                        if pdf_error:
+                            st.session_state[pdf_error_key] = f"⚠️ {pdf_error}"
+                        else:
+                            st.session_state[pdf_key] = pdf_result
+                            st.toast("Tailored PDF resume generated!", icon="🎨")
                                 
                 with col_btn2:
                     st.write("**Did you apply for this position?**")
@@ -1331,7 +1603,6 @@ with tab_recruiter:
                         key=f"area_{tailored_key}"
                     )
                     
-                    company_clean = actual_company.replace(" ", "_").strip()
                     st.download_button(
                         label="💾 Download Tailored Resume (.txt)",
                         data=st.session_state[tailored_key],
@@ -1340,8 +1611,38 @@ with tab_recruiter:
                         key=f"dl_{tailored_key}"
                     )
 
+                if pdf_error_key in st.session_state:
+                    st.error(st.session_state[pdf_error_key])
+
+                if pdf_key in st.session_state:
+                    pdf_result = st.session_state[pdf_key]
+                    report = pdf_result["report"]
+                    st.divider()
+                    st.markdown("#### 🎨 Tailored PDF Resume (your original design)")
+                    st.caption(f"{len(report['applied'])} block(s) rewritten in place. "
+                               "Everything else in your PDF is unchanged. Please VERIFY every change.")
+
+                    st.download_button(
+                        label="💾 Download Tailored Resume (.pdf)",
+                        data=pdf_result["pdf_bytes"],
+                        file_name=f"Tailored_Resume_{company_clean}.pdf",
+                        mime="application/pdf",
+                        key=f"dl_{pdf_key}"
+                    )
+
+                    col_prev, col_changes = st.columns(2)
+                    with col_prev:
+                        for page_png in pdf_result["pages"]:
+                            st.image(page_png, width="stretch")
+                    with col_changes:
+                        st.markdown("**What changed**")
+                        for change in report["applied"]:
+                            st.markdown(f"~~{as_plain_text(change['old'])}~~  \n→ {as_plain_text(change['new'])}")
+                        for skip in report["skipped"]:
+                            st.warning(as_plain_text(f"Not applied ({skip['reason']}): {skip['new']}"))
+
     else:
-        st.info("No match output found. Select your resume and query file above, then click 'Analyze Job Matches'.")
+        st.info("No match output found. Select your resume and build your search above, then click 'Find Job Matches with AI'.")
 
 
     # ==============================================================================
@@ -1399,7 +1700,23 @@ with tab_recruiter:
             st.session_state.tracker_original = json.loads(json.dumps(st.session_state.tracker_data))
 
         if st.session_state.tracker_data:
+            if st.button("🔄 Refresh posting status", disabled=not jobspipe_key,
+                         help="Checks with JobsPipe whether each job you applied to is still open. "
+                              "\"Closed\" means the posting was confirmed taken down; \"May be closed\" means it hasn't been seen for a while."):
+                try:
+                    with st.spinner("Checking your postings..."):
+                        checked = refresh_posting_statuses(st.session_state.tracker_data, jobspipe_key)
+                    save_tracker(st.session_state.tracker_data)
+                    st.session_state.tracker_original = json.loads(json.dumps(st.session_state.tracker_data))
+                    st.toast(f"Checked {checked} posting(s).", icon="🔄")
+                    st.rerun()
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ JobsPipe status refresh failed: {e}")
+                    st.error("⚠️ Couldn't check posting status right now. Please try again later.")
+
             df = pd.DataFrame(st.session_state.tracker_data)
+            if "posting_status" not in df.columns:
+                df["posting_status"] = ""
 
             # Ensure followup_date exists in DataFrame even if legacy records lack it
             if "followup_date" not in df.columns:
@@ -1437,6 +1754,7 @@ with tab_recruiter:
                     "date_applied", 
                     "followup_date", 
                     "status", 
+                    "posting_status",
                     "notes", 
                     "url"
                 ],
@@ -1447,6 +1765,7 @@ with tab_recruiter:
                     "applied_date": st.column_config.DateColumn("Date Applied", format="YYYY-MM-DD"),
                     "followup_date": st.column_config.DateColumn("Follow-up Date", format="YYYY-MM-DD", help="Target date you expect to hear back from the hiring company OR the date you will need to do something. If no further follow-ups, like you got a rejection :-( then delete the Follow-up Date which sill set it to None."),
                     "status": st.column_config.TextColumn("Status", help="Add your own job hunting status here. Suggest to create as few labels as possible. Also, use labels consistently."),
+                    "posting_status": st.column_config.TextColumn("Posting", disabled=True, help="Use \"Refresh posting status\" above to check whether the job posting is still open."),
                     "notes": st.column_config.TextColumn("Notes", width="medium", help="Add details like recruiter feedback, key missing skills, or interview progress. The more details you add the richer insights the AI Weekly Plan Advisor will provide!"),
                     "url": st.column_config.LinkColumn("Job Link", help="Click to open the job posting"),
                 },
@@ -1590,6 +1909,7 @@ with tab_config:
             p_match = st.text_area("Match Analyzer Prompt", prompts.get("match_analyzer", ""), height=150, help="AI prompt to evaluate job postings against your resume.")
             p_tailor = st.text_area("Resume Tailor Prompt", prompts.get("resume_tailor", ""), height=150, help="AI prompt to tailor a resume to your chosen job descriptions.")
             p_advisor = st.text_area("Weekly Plan Advisor", prompts.get("weekly_plan_advisor", ""), height=150, help="AI prompt to generate feedback on your weekly job search plan.")
+            p_cv_pdf = st.text_area("PDF Resume Tailor Prompt", prompts.get("cv_pdf_tailor", ""), height=150, help="AI prompt to rewrite a few bullets inside your own PDF resume, keeping its design.")
 
             # 2. Build current prompts dictionary to check against baseline snapshot
             current_prompts_data = json.loads(json.dumps(prompts_data))
@@ -1599,6 +1919,7 @@ with tab_config:
             current_prompts_data["system_prompts"]["match_analyzer"] = p_match
             current_prompts_data["system_prompts"]["resume_tailor"] = p_tailor
             current_prompts_data["system_prompts"]["weekly_plan_advisor"] = p_advisor
+            current_prompts_data["system_prompts"]["cv_pdf_tailor"] = p_cv_pdf
 
             has_prompt_changes = current_prompts_data != st.session_state.prompts_original
 
@@ -1615,6 +1936,7 @@ with tab_config:
                     prompts_data["system_prompts"]["match_analyzer"] = p_match
                     prompts_data["system_prompts"]["resume_tailor"] = p_tailor
                     prompts_data["system_prompts"]["weekly_plan_advisor"] = p_advisor
+                    prompts_data["system_prompts"]["cv_pdf_tailor"] = p_cv_pdf
 
                     save_yaml(PROMPTS_FILE, prompts_data)
                     st.session_state.prompts_original = json.loads(json.dumps(prompts_data))

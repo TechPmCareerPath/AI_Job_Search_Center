@@ -129,17 +129,31 @@ To try this feature, use the sample resume in .\resume\Sample_resume_my_Program_
 
 An example of the Resume Tailor results using the sample resume above can be found at: .\output\Sample_Tailored_Resume_Output.txt. Note the critique sections at the top, bottom and the "[UPDATED]" text to show which sections AI updated.
 
-2. Select Job Source Query. 
+2. Build Your Job Search. 
 
-You may be pursuing **several different job titles**, thus a different job query will be needed to retrieve the latest jobs for each job title. Also, you may have different job preferences (ex: location, seniority, etc.). 
+You may be pursuing **several different job titles**, thus a different job search will be needed to retrieve the latest jobs for each job title. Also, you may have different job preferences (ex: location, seniority, etc.). 
 
-Select the JobsPipe YAML file in .\config\query.yaml.
+Fill in the Search Builder form: job titles, titles to exclude, countries, cities, seniority, work arrangement, visa sponsorship, minimum salary, how recent the postings should be and how many jobs to fetch. No YAML editing needed.
 
-A single query.yaml file can contain multiple JobsPipe job queries. In the drop-down labeled "Choose Job to Query", select a query from that YAML file that matches the resume you just uploaded (ex: I uploaded a program manager resume, so choose the "program manager" query).
+To reuse a search, type a name under "Save this search as" and choose "Save search". Next time, pick it in "Start from a saved search" (ex: I uploaded a program manager resume, so choose the "program manager" search). The presets in .\config\query.yaml appear there too.
 
-You can choose the expand box "View Selected Job Query" to view the selected JobsPipe query. 
+**Visa sponsorship tip:** very few postings mention sponsorship at all. "Hide jobs that rule out sponsorship" drops the ones that say "no sponsorship" or "citizens / PR only" and keeps the rest, which is usually what you want.
+
+Optional quality filters under the form:
+* **English-language postings only**: handy when searching abroad. A posting written in English can still ask for the local language, so read the description.
+* **Hide recruitment agencies**: apply to employers directly.
+* **Hide likely ghost jobs**: leaves out postings JobsPipe rates as likely ghost jobs (unrated postings are kept).
+* **Only jobs new since my last run of this search**: after you run a saved search once, this shows only postings JobsPipe found since then, so you don't review the same jobs every week.
+
+You can choose the expand box "View JobsPipe request" to view the exact JobsPipe query. 
 
 Lastly, choose the shiny red button "Find Job Matches with AI". This will call JobsPipe to get the jobs in the selected query. Next the app will send the job results along with the chosen resume to Gemini to compare. Gemini will return the Match Score %, Reasoning, Key Matching Skills and Missing Skills, which are all displayed in the UI. 
+
+### Job Search & Resume Tailor --> What skills does this market ask for?
+
+Above your matches, "Measure skill demand" counts how many postings in your whole search ask for each skill found in your results (ex: "Account Management: 25% of postings"). Skills with a high share that are missing from your resume are worth learning or making more visible. It uses about one JobsPipe credit per skill.
+
+Each matched job also shows quick facts when JobsPipe has them: salary, number of applicants (LinkedIn postings), a likely-ghost-job warning, whether a recruitment agency posted it, and how long since the posting was last seen live.
 
 ### Job Search & Resume Tailor --> Expand one job --> Key Matching Skills
 
@@ -150,6 +164,14 @@ Some examples: If you list "SQL" on your resume, AI will infer that you have "ET
 ### Job Search & Resume Tailor --> Expand one job --> Generate Tailored Resume
 
 Within each matching job, there's a button that says "Generate Tailored Resume". It does what it says :-) The chosen job and resume are sent to Gemini. After the Tailored Resume has been created, it will display in text below this button. You can also download that tailored resume and use it to update your official resume.
+
+### Job Search & Resume Tailor --> Expand one job --> Tailor My PDF Resume
+
+If your active resume is a PDF, there's also a "Tailor My PDF Resume" button. Instead of a text draft, it rewrites a few bullets (and your summary) **inside your own PDF**, keeping its design: layout, fonts, colors and photo stay exactly as they were. You get a preview, a download button and a "What changed" list showing each original bullet next to its rewrite.
+
+Rewrites keep every number and specific from the original, never exceed the space the original bullet had, and are skipped (and listed) when they don't fit. **Always VERIFY every change** before you send the resume. The prompt is editable in the System Configuration Editor.
+
+This works for PDFs with real text (exported from Canva, Word or Google Docs), not scanned images. Fonts are downloaded from Google Fonts to write the new text; text in other fonts is left unchanged.
 
 **"Did you apply for this position?"** --> **"Yes"**, will add this position to the Job Application Tracker table and increment Active Job Search Dashboard -> Applications task by one, (if there is an active job search and the "Applications" task was added for that week.). You can **undo** this action by choosing "No".
 
@@ -175,6 +197,8 @@ Note, you can hover on the table to get a little menu in the top right. Also, ch
 
 After making changes to the table, choose the "Save Tracker Changes" button under this table.
 
+**Is the job still open?** Choose "Refresh posting status" above the table to check every job you found through this app with JobsPipe. The **Posting** column then shows *Open*, *Closed* (the posting was confirmed taken down) or *May be closed* (not seen live for a while), with the date it was last seen. Jobs you added by hand are left as they are.
+
 
 ### System Configuration Editor
 This allows you to modify AI model settings and system prompts live without touching the code. For convenience, all changes are saved in the .yaml files mentioned on this screen.
@@ -191,9 +215,10 @@ AI_job_search_center\
 ├── app.py                               # Main Streamlit application entry point.
 ├── .\config\config.yaml                 # Model configs (model names, temperature, etc.), editable via the UI.
 ├── .\config\prompts.yaml                # AI prompt templates, editable via the UI.
-├── .\config\query.yaml                  # Jobs query configurations, currently configured for JobsPipe. You must manually edit this file.
+├── .\config\query.yaml                  # Preset JobsPipe searches shown in the Search Builder.
 ├── .\output\agent_job_analysis.json     # Raw output from choosing "Find Job Matches with AI". The app then compares returned jobs to the selected resume.
 ├── .\output\agent_weekly_advisor.json   # Raw output from the Weekly Plan Advisor. 
+├── .\output\fonts                       # Google Fonts downloaded to rewrite text inside PDF resumes.
 ├── .\output\jobs.csv                    # All results from your JobsPipe query above and below Match Threshold%. Has a subset of most useful fields from jobs.json.
 ├── .\output\jobs.json                   # All results from your JobsPipe query above and below Match Threshold%.
 ├── .\output\skipped_jobs.json           # Based on job matching results, if the user chooses NOT to pursue a job, that job ID is recorded here.
@@ -201,7 +226,12 @@ AI_job_search_center\
 ├── .\output\weekly_plan.json            # Stores the Job Search Plan -> Active Job Search Dashboard.
 ├── .\output\Sample_Tailored_Resume_Output.txt            # An example of the Resume Tailor results previously run against the sample PgM resume.
 ├── .\resume\Sample_resume_Program_Mgt_example_v3.txt  # Sample PgM resume to try.
-└── .\uploads                            # Any resumes or query.yaml uploads you chose go here.
+├── .\output\Tailored_Resume_<company>.pdf  # PDF resumes tailored with "Tailor My PDF Resume".
+├── .\uploads                            # Any resumes you upload, saved_queries.yaml with the searches you save, and search_history.json with when each was last run.
+├── query_builder.py                     # Converts the Search Builder form to a JobsPipe request and back.
+├── cv_pdf_editor.py                     # Rewrites text inside a PDF resume while keeping its design.
+├── job_signals.py                       # Posting status, match-card facts and skill candidates from JobsPipe data.
+└── test_*.py                            # Tests: pip install pytest, then run pytest.
 
 ```
 
