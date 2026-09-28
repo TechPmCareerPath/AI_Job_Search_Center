@@ -48,6 +48,7 @@ def test_round_trip():
         "cities": "", "seniority": ["Mid level"], "include_unlabeled_seniority": True,
         "work_arrangement": ["Hybrid"], "visa": VISA_NOT_RULED_OUT, "min_salary_usd": 52000,
         "include_no_salary": True, "posted_within_days": 14, "limit": 20,
+        "english_only": True, "hide_agencies": True, "hide_ghost_jobs": True,
     }
     assert payload_to_form(form_to_payload(form)) == form
 
@@ -72,3 +73,24 @@ def test_load_saved_payload_accepts_json_strings_and_mappings():
     assert load_saved_payload('{"limit": 5}') == {"limit": 5}
     assert load_saved_payload({"limit": 5}) == {"limit": 5}
     assert load_saved_payload(None) == {}
+
+
+def test_quality_options_map_to_filters_and_back():
+    form = {"titles": "marketing", "english_only": True, "hide_agencies": True, "hide_ghost_jobs": True}
+    payload = form_to_payload(form)
+    assert payload["language_or"] == ["en"]
+    assert payload["employer_type_not"] == ["agency", "broker"]
+    assert payload["max_ghost_score"] == 40
+    loaded = payload_to_form(payload)
+    assert loaded["english_only"] and loaded["hide_agencies"] and loaded["hide_ghost_jobs"]
+
+
+def test_quality_options_are_off_by_default():
+    payload = form_to_payload({"titles": "marketing"})
+    assert not {"language_or", "employer_type_not", "max_ghost_score", "discovered_at_gte"} & payload.keys()
+
+
+def test_new_since_adds_discovered_at_gte_but_is_not_saved_in_the_form():
+    payload = form_to_payload({"titles": "marketing"}, discovered_since="2026-09-21 08:00:00")
+    assert payload["discovered_at_gte"] == "2026-09-21 08:00:00"
+    assert "discovered_at_gte" not in payload_to_form(payload)
