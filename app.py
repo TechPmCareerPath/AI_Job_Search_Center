@@ -26,7 +26,7 @@ from query_builder import (
     COUNTRIES, DEFAULT_FORM, POSTED_WITHIN_DAYS, SENIORITY, VISA_OPTIONS, WORK_ARRANGEMENTS,
     form_to_payload, load_saved_payload, payload_to_form,
 )
-from cv_pdf_editor import apply_edits, check_edits, find_blocks, google_font_resolver, load_fonts, render_pages
+from cv_pdf_editor import apply_edits, check_edits, embedded_font_resolver, find_blocks, google_font_resolver, load_fonts, render_pages
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -103,6 +103,16 @@ def load_saved_search_into_form(saved_queries: dict):
     """on_change callback of the saved-search picker."""
     name = st.session_state.qb_preset
     apply_search_form(DEFAULT_FORM if name == NEW_SEARCH else payload_to_form(saved_queries[name]))
+    st.session_state.qb_save_name = "" if name == NEW_SEARCH else name
+
+def save_search(name: str, payload: dict):
+    """on_click callback of the Save search button: writes the search to SAVED_QUERY_FILE and selects it."""
+    os.makedirs(UPLOADS, exist_ok=True)
+    user_queries = load_yaml(SAVED_QUERY_FILE)
+    user_queries.setdefault("queries", {})[name] = payload
+    save_yaml(SAVED_QUERY_FILE, user_queries)
+    st.session_state.qb_preset = name
+    st.toast(f"Saved '{name}'.", icon="💾")
 
 def load_model_config():
     """Returns (selected_model, temperature) from config.yaml."""
@@ -395,7 +405,7 @@ Job Description:
 
     try:
         edits = dict(list(ask_gemini_for_cv_edits(prompt).items())[:MAX_CV_EDITS])
-        fonts = load_fonts(blocks, google_font_resolver(FONT_CACHE))
+        fonts = load_fonts(blocks, google_font_resolver(FONT_CACHE), embedded_font_resolver(resume_file_path))
 
         _, rejected = check_edits(blocks, edits, fonts)
         too_long = [r for r in rejected if "lines_needed" in r]
@@ -410,6 +420,18 @@ Job Description:
             )
             shortened = ask_gemini_for_cv_edits(shorten_prompt)
             edits.update({i: text for i, text in shortened.items() if i in edits})
+
+        bad_chars = [r for r in rejected if "missing_chars" in r]
+        if bad_chars:
+            reword_prompt = (
+                "The candidate's PDF font only includes the characters the resume already uses, so each line below must be "
+                "reworded without the characters listed for it. Keep the meaning, every number and every "
+                "specific, and keep it no longer than it is now.\n\n" + "\n".join(
+                    f"[{r['id']}] (do not use: {' '.join(r['missing_chars'])}) {r['new']}" for r in bad_chars
+                )
+            )
+            reworded = ask_gemini_for_cv_edits(reword_prompt)
+            edits.update({i: text for i, text in reworded.items() if i in edits})
 
         report = apply_edits(resume_file_path, blocks, edits, fonts, out_path)
         with open(out_path, "rb") as f:
@@ -1072,7 +1094,7 @@ with tab_recruiter:
         key="qb_preset",
         on_change=load_saved_search_into_form,
         args=(saved_queries,),
-        help="Loads a saved search into the form below. Change anything, then run it or save it under a new name."
+        help="Loads a saved search into the form below. Change anything, then run it, save it, or save it under a new name."
     )
 
     col_q1, col_q2 = st.columns(2)
@@ -1126,14 +1148,12 @@ with tab_recruiter:
 
     col_s1, col_s2 = st.columns([3, 1], vertical_alignment="bottom")
     with col_s1:
-        save_name = st.text_input("Save this search as", placeholder="marketing singapore")
+        save_name = st.text_input("Save this search as", key="qb_save_name", placeholder="marketing singapore").strip()
+    already_saved = (save_name in saved_queries
+                     and form_to_payload(payload_to_form(saved_queries[save_name])) == selected_query_payload)
     with col_s2:
-        if st.button("💾 Save search", disabled=not (save_name.strip() and selected_query_payload)):
-            os.makedirs(UPLOADS, exist_ok=True)
-            user_queries = load_yaml(SAVED_QUERY_FILE)
-            user_queries.setdefault("queries", {})[save_name.strip()] = selected_query_payload
-            save_yaml(SAVED_QUERY_FILE, user_queries)
-            st.toast(f"Saved '{save_name.strip()}'.", icon="💾")
+        st.button("💾 Save search", disabled=not (save_name and selected_query_payload) or already_saved,
+                  on_click=save_search, args=(save_name, selected_query_payload))
 
     if selected_query_payload:
         with st.expander("👁️ View JobsPipe request", expanded=False):
@@ -1503,27 +1523,33 @@ with tab_recruiter:
                     report = pdf_result["report"]
                     st.divider()
                     st.markdown("#### 🎨 Tailored PDF Resume (your original design)")
-                    st.caption(f"{len(report['applied'])} block(s) rewritten in place. "
-                               "Everything else in your PDF is unchanged. Please VERIFY every change.")
-
-                    st.download_button(
-                        label="💾 Download Tailored Resume (.pdf)",
-                        data=pdf_result["pdf_bytes"],
-                        file_name=f"Tailored_Resume_{company_clean}.pdf",
-                        mime="application/pdf",
-                        key=f"dl_{pdf_key}"
-                    )
+                    if report["applied"]:
+                        st.caption(f"{len(report['applied'])} block(s) rewritten in place. "
+                                   "Everything else in your PDF is unchanged. Please VERIFY every change.")
+                        st.download_button(
+                            label="💾 Download Tailored Resume (.pdf)",
+                            data=pdf_result["pdf_bytes"],
+                            file_name=f"Tailored_Resume_{company_clean}.pdf",
+                            mime="application/pdf",
+                            key=f"dl_{pdf_key}"
+                        )
+                    else:
+                        st.warning("None of the suggested rewrites could be written into your PDF, so it is unchanged. "
+                                   "The reasons are listed below.")
 
                     col_prev, col_changes = st.columns(2)
                     with col_prev:
                         for page_png in pdf_result["pages"]:
                             st.image(page_png, width="stretch")
                     with col_changes:
-                        st.markdown("**What changed**")
-                        for change in report["applied"]:
-                            st.markdown(f"~~{change['old']}~~  \n→ {change['new']}")
-                        for skip in report["skipped"]:
-                            st.warning(f"Not applied ({skip['reason']}): {skip['new']}")
+                        if report["applied"]:
+                            st.markdown("**What changed**")
+                            for change in report["applied"]:
+                                st.markdown(f"~~{change['old']}~~  \n→ {change['new']}".replace("$", "\\$"))
+                        if report["skipped"]:
+                            st.markdown("**Suggested but not applied**")
+                            for skip in report["skipped"]:
+                                st.warning(f"{skip['new']}  \n_Why: {skip['reason']}_".replace("$", "\\$"))
 
     else:
         st.info("No match output found. Select your resume and build your search above, then click 'Find Job Matches with AI'.")

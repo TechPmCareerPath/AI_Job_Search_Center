@@ -135,7 +135,7 @@ You may be pursuing **several different job titles**, thus a different job searc
 
 Fill in the Search Builder form: job titles, titles to exclude, countries, cities, seniority, work arrangement, visa sponsorship, minimum salary, how recent the postings should be and how many jobs to fetch. No YAML editing needed.
 
-To reuse a search, type a name under "Save this search as" and choose "Save search". Next time, pick it in "Start from a saved search" (ex: I uploaded a program manager resume, so choose the "program manager" search). The presets in .\config\query.yaml appear there too.
+To reuse a search, type a name under "Save this search as" and choose "Save search". Next time, pick it in "Start from a saved search" (ex: I uploaded a program manager resume, so choose the "program manager" search). The presets in .\config\query.yaml appear there too. To update a saved search, pick it, change any field and choose "Save search" again; the button stays greyed out until something has changed.
 
 **Visa sponsorship tip:** very few postings mention sponsorship at all. "Hide jobs that rule out sponsorship" drops the ones that say "no sponsorship" or "citizens / PR only" and keeps the rest, which is usually what you want.
 
@@ -159,7 +159,7 @@ If your active resume is a PDF, there's also a "Tailor My PDF Resume" button. In
 
 Rewrites keep every number and specific from the original, never exceed the space the original bullet had, and are skipped (and listed) when they don't fit. **Always VERIFY every change** before you send the resume. The prompt is editable in the System Configuration Editor.
 
-This works for PDFs with real text (exported from Canva, Word or Google Docs), not scanned images. Fonts are downloaded from Google Fonts to write the new text; text in other fonts is left unchanged.
+This works for PDFs with real text (exported from Canva, Word or Google Docs), not scanned images. The new text is written in the PDF's own font: downloaded from Google Fonts when it's there, otherwise taken from the copy embedded in your PDF (this is how Word's Aptos and Calibri work). An embedded copy only holds the characters your resume already uses, so a rewrite needing a new one is reworded once by Gemini, or else listed under "Suggested but not applied" with the reason.
 
 **"Did you apply for this position?"** --> **"Yes"**, will add this position to the Job Application Tracker table and increment Active Job Search Dashboard -> Applications task by one, (if there is an active job search and the "Applications" task was added for that week.). You can **undo** this action by choosing "No".
 

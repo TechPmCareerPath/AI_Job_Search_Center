@@ -2,7 +2,7 @@ import pymupdf
 import pytest
 
 from cv_pdf_editor import (
-    _split_font_name, apply_edits, check_edits, find_blocks, load_fonts, render_pages,
+    _split_font_name, apply_edits, check_edits, embedded_font_resolver, find_blocks, load_fonts, render_pages,
 )
 
 HELV = pymupdf.Font("helv").buffer
@@ -138,6 +138,40 @@ def test_missing_font_is_rejected(cv):
     blocks = find_blocks(cv)
     _, rejected = check_edits(blocks, {2: "Grew traffic from 100 to 40K users."}, load_fonts(blocks, lambda _: None))
     assert "not available" in rejected[0]["reason"]
+
+
+def make_word_like_cv(path):
+    """Two bullets in an embedded, subset font that isn't on Google Fonts, as Word writes Aptos."""
+    doc = pymupdf.open()
+    page = doc.new_page(width=595, height=842)
+    page.insert_font(fontname="Office", fontbuffer=pymupdf.Font("cjk").buffer)
+    for y, line in ((100, "Led onboarding for enterprise clients."), (120, "Ran events for 70+ people.")):
+        dot(page, 294, y)
+        page.insert_text((300, y), line, fontname="Office", fontsize=9)
+    doc.subset_fonts()
+    doc.save(path)
+
+
+def test_font_embedded_in_the_pdf_is_used_when_google_fonts_has_none(tmp_path):
+    cv = str(tmp_path / "word.pdf")
+    make_word_like_cv(cv)
+    blocks = find_blocks(cv)
+    fonts = load_fonts(blocks, lambda _: None, embedded_font_resolver(cv))
+    out = str(tmp_path / "out.pdf")
+    report = apply_edits(cv, blocks, {0: "Led enterprise onboarding for clients."}, fonts, out)
+    assert [a["id"] for a in report["applied"]] == [0]
+    with pymupdf.open(out) as doc:
+        assert "Led enterprise onboarding for clients." in doc[0].get_text()
+        assert "Led onboarding for enterprise" not in doc[0].get_text()
+
+
+def test_characters_missing_from_the_embedded_subset_are_rejected(tmp_path):
+    cv = str(tmp_path / "word.pdf")
+    make_word_like_cv(cv)
+    blocks = find_blocks(cv)
+    fonts = load_fonts(blocks, embedded_font_resolver(cv))
+    _, rejected = check_edits(blocks, {0: "Led onboarding for QA and enterprise clients."}, fonts)
+    assert "'A'" in rejected[0]["reason"] and "'Q'" in rejected[0]["reason"]
 
 
 def test_render_pages(cv):

@@ -3,22 +3,26 @@ Rewrite text inside a PDF resume while keeping its design: layout, photo, shapes
 every untouched line stay exactly as they were.
 
   find_blocks(pdf_path)                           -> editable text blocks (bullets and paragraphs)
-  load_fonts(blocks, resolver)                    -> the fonts needed to write into those blocks
+  load_fonts(blocks, *resolvers)                  -> the fonts needed to write into those blocks
   check_edits(blocks, edits, fonts)               -> which edits can be written, and why others can't
   apply_edits(pdf_path, blocks, edits, fonts, out) -> writes the edited PDF, reports applied / skipped
   render_pages(pdf_bytes)                         -> PNG previews of each page
   google_font_resolver(cache_dir)                 -> fetches the fonts a PDF uses from Google Fonts
+  embedded_font_resolver(pdf_path)                -> reuses the fonts embedded in the PDF itself
 
 Works on PDFs that contain real text laid out line by line (Canva, Word, Google Docs exports).
 Scanned or image-only resumes have no text to edit.
 """
 import functools
+import io
 import os
 import re
 import urllib.parse
 import urllib.request
 
 import pymupdf
+from fontTools.ttLib import TTFont, newTable
+from fontTools.ttLib.tables._c_m_a_p import CmapSubtable
 
 BULLET_GLYPHS = "•●▪◦·"
 BULLET_LEADS = BULLET_GLYPHS + "-–"
@@ -65,6 +69,101 @@ def google_font_resolver(cache_dir: str):
                 return None
         with open(path, "rb") as f:
             return f.read()
+
+    return resolve
+
+
+def _font_key(name: str) -> str:
+    """'NJSVLU+Aptos-Regular' and 'Aptos Regular' -> 'aptosregular'"""
+    return re.sub(r"[^a-z0-9]", "", name.split("+", 1)[-1].lower())
+
+
+def _to_unicode(cmap_stream: bytes) -> dict:
+    """{character code: unicode character} from a PDF ToUnicode CMap. Ligatures are left out."""
+    text = cmap_stream.decode("latin-1")
+    pairs = {}
+    for section in re.findall(r"beginbfchar(.*?)endbfchar", text, re.S):
+        for src, dst in re.findall(r"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]{4})>", section):
+            pairs[int(src, 16)] = chr(int(dst, 16))
+    for section in re.findall(r"beginbfrange(.*?)endbfrange", text, re.S):
+        for lo, hi, dst in re.findall(r"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*(<[0-9A-Fa-f]+>|\[[^\]]*\])", section):
+            lo, hi = int(lo, 16), int(hi, 16)
+            if dst.startswith("["):
+                for code, item in zip(range(lo, hi + 1), re.findall(r"<([0-9A-Fa-f]+)>", dst)):
+                    if len(item) == 4:
+                        pairs[code] = chr(int(item, 16))
+            elif len(dst) == 6:
+                for code in range(lo, hi + 1):
+                    pairs[code] = chr(int(dst[1:-1], 16) + code - lo)
+    return pairs
+
+
+def _drawable(font, glyph_name: str) -> bool:
+    if "glyf" not in font:
+        return True
+    glyph = font["glyf"][glyph_name]
+    return glyph.numberOfContours != 0
+
+
+def _with_cmap(font_bytes: bytes, chars_by_glyph: dict = None) -> bytes:
+    """
+    Give a subset font a character map holding only the characters it can really draw. Subsets
+    lose their map, or keep entries for glyphs that were dropped, so the map comes from
+    {glyph id: unicode character} (the PDF's ToUnicode table) or else from the font's own map.
+    """
+    font = TTFont(io.BytesIO(font_bytes))
+    order = font.getGlyphOrder()
+    if chars_by_glyph is None:
+        pairs = dict(font.getBestCmap() or {})
+    else:
+        pairs = {ord(c): order[gid] for gid, c in chars_by_glyph.items() if 0 < gid < len(order)}
+    subtable = CmapSubtable.newSubtable(4)
+    subtable.platformID, subtable.platEncID, subtable.language = 3, 1, 0
+    subtable.cmap = {cp: name for cp, name in pairs.items()
+                     if cp <= 0xFFFF and (chr(cp).isspace() or _drawable(font, name))}
+    font["cmap"] = newTable("cmap")
+    font["cmap"].tableVersion = 0
+    font["cmap"].tables = [subtable]
+    out = io.BytesIO()
+    font.save(out)
+    return out.getvalue()
+
+
+def _embedded_font(doc, xref: int):
+    """TTF bytes of the font a PDF embeds at xref, mapping only the characters it can draw, or None."""
+    try:
+        _, ext, _, data = doc.extract_font(xref)
+        if ext not in ("ttf", "otf") or not data:
+            return None
+        chars_by_glyph = None
+        kind, to_unicode = doc.xref_get_key(xref, "ToUnicode")
+        if kind == "xref" and doc.xref_get_key(xref, "Subtype")[1] == "/Type0":
+            descendant = doc.xref_get_key(xref, "DescendantFonts")[1]
+            cid_font = int(re.search(r"(\d+) 0 R", descendant).group(1))
+            if doc.xref_get_key(cid_font, "CIDToGIDMap")[1] in ("null", "/Identity"):
+                chars_by_glyph = _to_unicode(doc.xref_stream(int(to_unicode.split()[0])))
+        return _with_cmap(data, chars_by_glyph)
+    except Exception:
+        return None
+
+
+def embedded_font_resolver(pdf_path: str):
+    """
+    Return a function mapping a PDF font name to the font embedded in that PDF, or None. Used for
+    fonts that aren't on Google Fonts, like Word's Aptos and Calibri. Embedded fonts are subsets,
+    so check_edits refuses rewrites that need a character the subset doesn't have.
+    """
+    fonts = {}
+    with pymupdf.open(pdf_path) as doc:
+        for page in doc:
+            for xref, _, _, basefont, *_ in page.get_fonts():
+                key = _font_key(basefont)
+                if key not in fonts:
+                    fonts[key] = _embedded_font(doc, xref)
+
+    def resolve(pdf_font: str):
+        key = _font_key(pdf_font)
+        return fonts.get(key) or next((data for k, data in fonts.items() if data and k.startswith(key)), None)
 
     return resolve
 
@@ -168,11 +267,12 @@ def find_blocks(pdf_path: str) -> list:
     return blocks
 
 
-def load_fonts(blocks: list, font_resolver) -> dict:
-    """{pdf font name: pymupdf.Font or None} for every font used by the blocks."""
+def load_fonts(blocks: list, *font_resolvers) -> dict:
+    """{pdf font name: pymupdf.Font or None} for every font used by the blocks, from the first
+    resolver that has it."""
     fonts = {}
     for name in {b["font"] for b in blocks}:
-        data = font_resolver(name)
+        data = next((d for d in (resolve(name) for resolve in font_resolvers) if d), None)
         fonts[name] = pymupdf.Font(fontbuffer=data) if data else None
     return fonts
 
@@ -207,7 +307,8 @@ def check_edits(blocks: list, edits: dict, fonts: dict) -> tuple:
     """
     Split {block_id: new_text} into edits that can be written and rejected ones.
     Returns (plans, rejected): plans = {block_id: (wrapped_lines, size)}; each rejected entry is
-    {"id", "old", "new", "reason"}, plus "lines_needed" / "lines_available" when it didn't fit.
+    {"id", "old", "new", "reason"}, plus "lines_needed" / "lines_available" when it didn't fit, or
+    "missing_chars" when the PDF's embedded font can't draw some of its characters.
     """
     by_id = {b["id"]: b for b in blocks}
     plans, rejected = {}, []
@@ -223,6 +324,10 @@ def check_edits(blocks: list, edits: dict, fonts: dict) -> tuple:
             rejected.append({**entry, "reason": f"dropped {', '.join(missing)} from the original"})
         elif fonts.get(block["font"]) is None:
             rejected.append({**entry, "reason": f"font '{block['font']}' is not available"})
+        elif missing := sorted({c for c in block["prefix"] + new_text
+                                if not fonts[block["font"]].has_glyph(ord(c))}):
+            rejected.append({**entry, "missing_chars": "".join(missing),
+                             "reason": "your PDF's copy of the font has no " + " ".join(f"'{c}'" for c in missing)})
         else:
             wrapped, size, fits = layout(block, new_text, fonts[block["font"]])
             if fits:
