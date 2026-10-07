@@ -197,7 +197,7 @@ Note, you can hover on the table to get a little menu in the top right. Also, ch
 
 After making changes to the table, choose the "Save Tracker Changes" button under this table.
 
-**Is the job still open?** Choose "Refresh posting status" above the table to check every job you found through this app with JobsPipe. The **Posting** column then shows *Open*, *Closed* (the posting was confirmed taken down) or *May be closed* (not seen live for a while), with the date it was last seen. Jobs you added by hand are left as they are.
+**Is the job still open?** Tick the jobs you want to check in the **Check** column, then choose "Refresh posting status" below the table. JobsPipe is asked about those jobs only, so you can skip old applications and ones you already heard back about. The **Posting** column then shows *Open*, *Closed* (the posting was confirmed taken down) or *May be closed* (not seen live for a while), with the date it was last seen. Jobs you added by hand have no JobsPipe id and can't be checked.
 
 
 ### System Configuration Editor

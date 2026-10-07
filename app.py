@@ -26,7 +26,7 @@ from query_builder import (
     COUNTRIES, DEFAULT_FORM, POSTED_WITHIN_DAYS, SENIORITY, VISA_OPTIONS, WORK_ARRANGEMENTS,
     form_to_payload, load_saved_payload, payload_to_form,
 )
-from job_signals import OPEN, job_badges, posting_statuses, skill_candidates
+from job_signals import OPEN, job_badges, posting_statuses, selected_job_ids, skill_candidates
 from cv_pdf_editor import apply_edits, check_edits, embedded_font_resolver, find_blocks, google_font_resolver, load_fonts, render_pages
 
 # --- Page Configuration ---
@@ -532,12 +532,12 @@ def post_jobs_search(query_payload: dict, jobs_api_key: str) -> dict:
     return resp.json()
 
 
-def refresh_posting_statuses(tracker_data: list, jobs_api_key: str) -> int:
+def refresh_posting_statuses(tracker_data: list, jobs_api_key: str, job_ids: list) -> int:
     """
-    Looks up every tracked JobsPipe job and stores whether its posting is still open.
-    Jobs added by hand (no JobsPipe id) are left alone. Returns how many jobs were checked.
+    Looks up the given JobsPipe jobs (the rows the user ticked in the tracker) and stores whether
+    each posting is still open. Other rows are left alone. Returns how many jobs were checked.
     """
-    job_ids = [str(item["job_id"]) for item in tracker_data if str(item.get("job_id") or "").strip()]
+    job_ids = [str(job_id) for job_id in job_ids]
     rows = []
     for start in range(0, len(job_ids), 20):
         chunk = job_ids[start:start + 20]
@@ -546,7 +546,7 @@ def refresh_posting_statuses(tracker_data: list, jobs_api_key: str) -> int:
     statuses = posting_statuses(rows, job_ids)
     for item in tracker_data:
         found = statuses.get(str(item.get("job_id")))
-        if found:
+        if found and str(item.get("job_id")) in job_ids:
             last_seen = f" · last seen {found['last_seen']}" if found["last_seen"] and found["status"] != OPEN else ""
             item["posting_status"] = found["status"] + last_seen
     return len(job_ids)
@@ -1726,23 +1726,11 @@ with tab_recruiter:
             st.session_state.tracker_original = json.loads(json.dumps(st.session_state.tracker_data))
 
         if st.session_state.tracker_data:
-            if st.button("🔄 Refresh posting status", disabled=not jobspipe_key,
-                         help="Checks with JobsPipe whether each job you applied to is still open. "
-                              "\"Closed\" means the posting was confirmed taken down; \"May be closed\" means it hasn't been seen for a while."):
-                try:
-                    with st.spinner("Checking your postings..."):
-                        checked = refresh_posting_statuses(st.session_state.tracker_data, jobspipe_key)
-                    save_tracker(st.session_state.tracker_data)
-                    st.session_state.tracker_original = json.loads(json.dumps(st.session_state.tracker_data))
-                    st.toast(f"Checked {checked} posting(s).", icon="🔄")
-                    st.rerun()
-                except requests.exceptions.RequestException as e:
-                    print(f"❌ JobsPipe status refresh failed: {e}")
-                    st.error("⚠️ Couldn't check posting status right now. Please try again later.")
-
             df = pd.DataFrame(st.session_state.tracker_data)
             if "posting_status" not in df.columns:
                 df["posting_status"] = ""
+            # Tick boxes for "Refresh posting status". Shown in the table only, never saved.
+            df.insert(0, "check", False)
 
             # Ensure followup_date exists in DataFrame even if legacy records lack it
             if "followup_date" not in df.columns:
@@ -1776,6 +1764,7 @@ with tab_recruiter:
                 filtered_df,
                 height=400,      # Explicitly set pixel height before vertical scrollbar appears.
                 column_order=[
+                    "check",
                     "company", 
                     "date_applied", 
                     "followup_date", 
@@ -1787,6 +1776,7 @@ with tab_recruiter:
                 num_rows="dynamic" if is_full_view else "fixed",
                 width='stretch',
                 column_config={
+                    "check": st.column_config.CheckboxColumn("Check", default=False, help="Tick the jobs you want to ask JobsPipe about, then choose \"Refresh posting status\" below the table."),
                     "company": st.column_config.TextColumn("Company"),
                     "applied_date": st.column_config.DateColumn("Date Applied", format="YYYY-MM-DD"),
                     "followup_date": st.column_config.DateColumn("Follow-up Date", format="YYYY-MM-DD", help="Target date you expect to hear back from the hiring company OR the date you will need to do something. If no further follow-ups, like you got a rejection :-( then delete the Follow-up Date which sill set it to None."),
@@ -1797,6 +1787,25 @@ with tab_recruiter:
                 },
                 key="tracker_editor"
             )
+
+            # Ticked rows drive "Refresh posting status"; the column itself is never saved.
+            selected_ids = selected_job_ids(edited_df.to_dict(orient="records"))
+            edited_df = edited_df.drop(columns=["check"])
+
+            if st.button("🔄 Refresh posting status", disabled=not (jobspipe_key and selected_ids),
+                         help="Asks JobsPipe whether each ticked job is still open. "
+                              "\"Closed\" means the posting was confirmed taken down; \"May be closed\" means it hasn't been seen for a while. "
+                              "Tick jobs in the Check column first; jobs you added by hand can't be checked."):
+                try:
+                    with st.spinner("Checking your postings..."):
+                        checked = refresh_posting_statuses(st.session_state.tracker_data, jobspipe_key, selected_ids)
+                    save_tracker(st.session_state.tracker_data)
+                    st.session_state.tracker_original = json.loads(json.dumps(st.session_state.tracker_data))
+                    st.toast(f"Checked {checked} posting(s).", icon="🔄")
+                    st.rerun()
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ JobsPipe status refresh failed: {e}")
+                    st.error("⚠️ Couldn't check posting status right now. Please try again later.")
 
             # Convert DataFrame to records
             raw_records = edited_df.to_dict(orient="records")

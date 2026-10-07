@@ -1,7 +1,7 @@
 from datetime import date
 
 from job_signals import (
-    CLOSED, MAYBE_CLOSED, NOT_FOUND, OPEN, job_badges, posting_statuses, skill_candidates,
+    CLOSED, MAYBE_CLOSED, NOT_FOUND, OPEN, job_badges, posting_statuses, selected_job_ids, skill_candidates,
 )
 
 
@@ -54,3 +54,16 @@ def test_skill_candidates_skip_soft_skills_and_count_each_job_once():
     ]
     assert skill_candidates(rows) == ["excel", "seo", "canva"]
     assert skill_candidates(rows, top_n=1) == ["excel"]
+
+
+def test_selected_job_ids_keeps_only_ticked_rows_with_a_jobspipe_id():
+    rows = [
+        {"check": True, "job_id": "a1"},
+        {"check": False, "job_id": "b2"},
+        {"check": True, "job_id": ""},          # added by hand: no JobsPipe id
+        {"check": True, "job_id": None},
+        {"check": float("nan"), "job_id": "c3"},  # untouched checkbox comes back as NaN
+        {"check": True, "job_id": 44},
+        {"job_id": "d4"},                        # legacy row without the column
+    ]
+    assert selected_job_ids(rows) == ["a1", "44"]

@@ -4,6 +4,7 @@ Signals about job postings that JobsPipe returns alongside each job.
   posting_statuses(rows, job_ids)       -> {job_id: {"status", "last_seen"}} for the Application Tracker
   job_badges(row, today)                -> short labels for a match card (salary, applicants, ghost risk...)
   skill_candidates(rows, top_n)         -> concrete skills to measure demand for
+  selected_job_ids(rows)                -> JobsPipe ids of the tracker rows the user ticked
 """
 from collections import Counter
 from datetime import date, datetime
@@ -88,6 +89,22 @@ def job_badges(row: dict, today: date = None) -> list:
         badges.append(f"⏳ Not seen live for {(today - last_seen).days} days")
 
     return badges
+
+
+def selected_job_ids(rows: list) -> list:
+    """
+    JobsPipe ids of the tracker rows whose "check" box is ticked, in table order.
+    Rows added by hand have no id and are skipped; an untouched box can come back as NaN.
+    """
+    ids = []
+    for row in rows:
+        if str(row.get("check")).lower() != "true":
+            continue
+        job_id = row.get("job_id")
+        text = "" if job_id is None else str(job_id).strip()
+        if text and text.lower() != "nan":
+            ids.append(text)
+    return ids
 
 
 def skill_candidates(rows: list, top_n: int = 8) -> list:
