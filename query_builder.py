@@ -30,6 +30,9 @@ VISA_OPTIONS = [VISA_ANY, VISA_NOT_RULED_OUT, VISA_EXPLICIT]
 
 POSTED_WITHIN_DAYS = [1, 3, 7, 14, 30]
 
+AGENCY_EMPLOYER_TYPES = ["agency", "broker"]
+MAX_GHOST_SCORE = 40
+
 DEFAULT_FORM = {
     "titles": "",
     "exclude_titles": "",
@@ -43,6 +46,9 @@ DEFAULT_FORM = {
     "include_no_salary": True,
     "posted_within_days": 30,
     "limit": 10,
+    "english_only": False,
+    "hide_agencies": False,
+    "hide_ghost_jobs": False,
 }
 
 
@@ -57,7 +63,7 @@ def _labels_for(values, mapping: dict) -> list:
     return [by_value[v.lower()] for v in (values or []) if v.lower() in by_value]
 
 
-def form_to_payload(form: dict) -> dict:
+def form_to_payload(form: dict, discovered_since: str = None) -> dict:
     """Build the JobsPipe request body. Empty fields are left out so they don't filter."""
     f = {**DEFAULT_FORM, **form}
     payload = {}
@@ -94,6 +100,15 @@ def form_to_payload(form: dict) -> dict:
     if include_unknown:
         payload["include_unknown"] = include_unknown
 
+    if f["english_only"]:
+        payload["language_or"] = ["en"]
+    if f["hide_agencies"]:
+        payload["employer_type_not"] = AGENCY_EMPLOYER_TYPES
+    if f["hide_ghost_jobs"]:
+        payload["max_ghost_score"] = MAX_GHOST_SCORE
+    if discovered_since:
+        payload["discovered_at_gte"] = discovered_since
+
     payload["posted_at_max_age_days"] = int(f["posted_within_days"])
     payload["include_total_results"] = True
     payload["limit"] = int(f["limit"])
@@ -127,6 +142,9 @@ def payload_to_form(payload: dict) -> dict:
         "include_no_salary": "salary" in unknown or not p.get("min_salary_usd"),
         "posted_within_days": posted if posted in POSTED_WITHIN_DAYS else DEFAULT_FORM["posted_within_days"],
         "limit": int(p.get("limit", DEFAULT_FORM["limit"])),
+        "english_only": p.get("language_or") == ["en"],
+        "hide_agencies": bool(p.get("employer_type_not")),
+        "hide_ghost_jobs": "max_ghost_score" in p,
     }
 
 

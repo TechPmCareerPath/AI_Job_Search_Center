@@ -139,9 +139,21 @@ To reuse a search, type a name under "Save this search as" and choose "Save sear
 
 **Visa sponsorship tip:** very few postings mention sponsorship at all. "Hide jobs that rule out sponsorship" drops the ones that say "no sponsorship" or "citizens / PR only" and keeps the rest, which is usually what you want.
 
+Optional quality filters under the form:
+* **English-language postings only**: handy when searching abroad. A posting written in English can still ask for the local language, so read the description.
+* **Hide recruitment agencies**: apply to employers directly.
+* **Hide likely ghost jobs**: leaves out postings JobsPipe rates as likely ghost jobs (unrated postings are kept).
+* **Only jobs new since my last run of this search**: after you run a saved search once, this shows only postings JobsPipe found since then, so you don't review the same jobs every week.
+
 You can choose the expand box "View JobsPipe request" to view the exact JobsPipe query. 
 
 Lastly, choose the shiny red button "Find Job Matches with AI". This will call JobsPipe to get the jobs in the selected query. Next the app will send the job results along with the chosen resume to Gemini to compare. Gemini will return the Match Score %, Reasoning, Key Matching Skills and Missing Skills, which are all displayed in the UI. 
+
+### Job Search & Resume Tailor --> What skills does this market ask for?
+
+Above your matches, "Measure skill demand" counts how many postings in your whole search ask for each skill found in your results (ex: "Account Management: 25% of postings"). Skills with a high share that are missing from your resume are worth learning or making more visible. It uses about one JobsPipe credit per skill.
+
+Each matched job also shows quick facts when JobsPipe has them: salary, number of applicants (LinkedIn postings), a likely-ghost-job warning, whether a recruitment agency posted it, and how long since the posting was last seen live.
 
 ### Job Search & Resume Tailor --> Expand one job --> Key Matching Skills
 
@@ -185,6 +197,8 @@ Note, you can hover on the table to get a little menu in the top right. Also, ch
 
 After making changes to the table, choose the "Save Tracker Changes" button under this table.
 
+**Is the job still open?** Tick the jobs you want to check in the **Check** column, then choose "Refresh posting status" below the table. JobsPipe is asked about those jobs only, so you can skip old applications and ones you already heard back about. The **Posting** column then shows *Open*, *Closed* (the posting was confirmed taken down) or *May be closed* (not seen live for a while), with the date it was last seen. Jobs you added by hand have no JobsPipe id and can't be checked.
+
 
 ### System Configuration Editor
 This allows you to modify AI model settings and system prompts live without touching the code. For convenience, all changes are saved in the .yaml files mentioned on this screen.
@@ -213,9 +227,10 @@ AI_job_search_center\
 ├── .\output\Sample_Tailored_Resume_Output.txt            # An example of the Resume Tailor results previously run against the sample PgM resume.
 ├── .\resume\Sample_resume_Program_Mgt_example_v3.txt  # Sample PgM resume to try.
 ├── .\output\Tailored_Resume_<company>.pdf  # PDF resumes tailored with "Tailor My PDF Resume".
-├── .\uploads                            # Any resumes you upload, plus saved_queries.yaml with the searches you save.
+├── .\uploads                            # Any resumes you upload, saved_queries.yaml with the searches you save, and search_history.json with when each was last run.
 ├── query_builder.py                     # Converts the Search Builder form to a JobsPipe request and back.
 ├── cv_pdf_editor.py                     # Rewrites text inside a PDF resume while keeping its design.
+├── job_signals.py                       # Posting status, match-card facts and skill candidates from JobsPipe data.
 └── test_*.py                            # Tests: pip install pytest, then run pytest.
 
 ```
