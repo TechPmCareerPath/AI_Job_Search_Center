@@ -5,6 +5,6 @@ model_config:
   - gemini-3.5-flash-lite
   - gemini-3.7-flash
   match_threshold: 75
-  selected_model: gemini-2.5-flash
-  temperature: 0.05
+  selected_model: gemini-3.5-flash-lite
+  temperature: 0.06
   top_p: 0.95

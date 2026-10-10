@@ -1,4 +1,4 @@
-# Note: All code below written by Gemini. Some user facing text and comments below were written by the author.
+# Note: All code written by Gemini and Claude. Some user facing text and comments below were written by the author.
 # MIT License.
 # To run after setup: > streamlit run app.py
 
@@ -12,6 +12,7 @@ import csv
 import requests
 import pandas as pd
 from datetime import datetime, date, timedelta, timezone
+from urllib.parse import urlsplit
 
 # --- GenAI & Pydantic Imports ---
 from google import genai
@@ -26,7 +27,7 @@ from query_builder import (
     COUNTRIES, DEFAULT_FORM, POSTED_WITHIN_DAYS, SENIORITY, VISA_OPTIONS, WORK_ARRANGEMENTS,
     form_to_payload, load_saved_payload, payload_to_form,
 )
-from job_signals import OPEN, job_badges, posting_statuses, selected_job_ids, skill_candidates
+from job_signals import OPEN, job_badges, posting_statuses, skill_candidates
 from cv_pdf_editor import apply_edits, check_edits, embedded_font_resolver, find_blocks, google_font_resolver, load_fonts, render_pages
 
 # --- Page Configuration ---
@@ -532,12 +533,12 @@ def post_jobs_search(query_payload: dict, jobs_api_key: str) -> dict:
     return resp.json()
 
 
-def refresh_posting_statuses(tracker_data: list, jobs_api_key: str, job_ids: list) -> int:
+def refresh_posting_statuses(tracker_data: list, jobs_api_key: str) -> int:
     """
-    Looks up the given JobsPipe jobs (the rows the user ticked in the tracker) and stores whether
-    each posting is still open. Other rows are left alone. Returns how many jobs were checked.
+    Looks up every tracked JobsPipe job and stores whether its posting is still open.
+    Jobs added by hand (no JobsPipe id) are left alone. Returns how many jobs were checked.
     """
-    job_ids = [str(job_id) for job_id in job_ids]
+    job_ids = [str(item["job_id"]) for item in tracker_data if str(item.get("job_id") or "").strip()]
     rows = []
     for start in range(0, len(job_ids), 20):
         chunk = job_ids[start:start + 20]
@@ -546,7 +547,7 @@ def refresh_posting_statuses(tracker_data: list, jobs_api_key: str, job_ids: lis
     statuses = posting_statuses(rows, job_ids)
     for item in tracker_data:
         found = statuses.get(str(item.get("job_id")))
-        if found and str(item.get("job_id")) in job_ids:
+        if found:
             last_seen = f" · last seen {found['last_seen']}" if found["last_seen"] and found["status"] != OPEN else ""
             item["posting_status"] = found["status"] + last_seen
     return len(job_ids)
@@ -1399,7 +1400,7 @@ with tab_recruiter:
             except Exception as e:
                 st.caption(f"Note: Could not map details from {JOBS_RESPONSE}: {e}")
 
-        st.json(match_results.get("metadata", {}))
+        st.json(match_results.get("metadata", {}), expanded = False)
         
         with st.expander("📊 What skills does this market ask for?"):
             st.caption("Counts how many postings in your whole search (not just the jobs shown) ask for each skill found in your results. "
@@ -1450,11 +1451,20 @@ with tab_recruiter:
                     st.caption(as_plain_text(" · ".join(badges)))
 
                 if source_url:
-                    st.markdown(
-                        f"**Source URL:** <a href='{source_url}' target='_blank' title='{source_url}' "
-                        f"style='color: #1a0dab; text-decoration: underline; word-break: break-all;'>{source_url}</a>",
-                        unsafe_allow_html=True
-                    )
+                    try:
+                        parsed_url = urlsplit(source_url)
+                        is_safe_url = (
+                            parsed_url.scheme in {"http", "https"}
+                            and parsed_url.hostname is not None
+                        )
+                    except ValueError:
+                        is_safe_url = False
+
+                    if is_safe_url:
+                        # Native Streamlit markdown sanitizes input and renders safe markdown links without unsafe_allow_html
+                        st.markdown(f"🔗 [Open job posting]({source_url})")
+                    else:
+                        st.caption("Source URL is invalid and cannot be opened.")
 
                 # Format key matching skills into Title Case with spaces
                 key_skills = [s.replace("-", " ").title() for s in job.get("key_matching_skills", [])]
@@ -1726,11 +1736,23 @@ with tab_recruiter:
             st.session_state.tracker_original = json.loads(json.dumps(st.session_state.tracker_data))
 
         if st.session_state.tracker_data:
+            if st.button("🔄 Refresh posting status", disabled=not jobspipe_key,
+                         help="Checks with JobsPipe whether each job you applied to is still open. "
+                              "\"Closed\" means the posting was confirmed taken down; \"May be closed\" means it hasn't been seen for a while."):
+                try:
+                    with st.spinner("Checking your postings..."):
+                        checked = refresh_posting_statuses(st.session_state.tracker_data, jobspipe_key)
+                    save_tracker(st.session_state.tracker_data)
+                    st.session_state.tracker_original = json.loads(json.dumps(st.session_state.tracker_data))
+                    st.toast(f"Checked {checked} posting(s).", icon="🔄")
+                    st.rerun()
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ JobsPipe status refresh failed: {e}")
+                    st.error("⚠️ Couldn't check posting status right now. Please try again later.")
+
             df = pd.DataFrame(st.session_state.tracker_data)
             if "posting_status" not in df.columns:
                 df["posting_status"] = ""
-            # Tick boxes for "Refresh posting status". Shown in the table only, never saved.
-            df.insert(0, "check", False)
 
             # Ensure followup_date exists in DataFrame even if legacy records lack it
             if "followup_date" not in df.columns:
@@ -1764,7 +1786,6 @@ with tab_recruiter:
                 filtered_df,
                 height=400,      # Explicitly set pixel height before vertical scrollbar appears.
                 column_order=[
-                    "check",
                     "company", 
                     "date_applied", 
                     "followup_date", 
@@ -1776,36 +1797,16 @@ with tab_recruiter:
                 num_rows="dynamic" if is_full_view else "fixed",
                 width='stretch',
                 column_config={
-                    "check": st.column_config.CheckboxColumn("Check", default=False, help="Tick the jobs you want to ask JobsPipe about, then choose \"Refresh posting status\" below the table."),
                     "company": st.column_config.TextColumn("Company"),
                     "applied_date": st.column_config.DateColumn("Date Applied", format="YYYY-MM-DD"),
                     "followup_date": st.column_config.DateColumn("Follow-up Date", format="YYYY-MM-DD", help="Target date you expect to hear back from the hiring company OR the date you will need to do something. If no further follow-ups, like you got a rejection :-( then delete the Follow-up Date which sill set it to None."),
                     "status": st.column_config.TextColumn("Status", help="Add your own job hunting status here. Suggest to create as few labels as possible. Also, use labels consistently."),
-                    "posting_status": st.column_config.TextColumn("Posting", disabled=True, help="Use \"Refresh posting status\" above to check whether the job posting is still open."),
+                    "posting_status": st.column_config.TextColumn("Posting", disabled=True, help="Use \"Refresh posting status\" below to check whether the job posting is still open."),
                     "notes": st.column_config.TextColumn("Notes", width="medium", help="Add details like recruiter feedback, key missing skills, or interview progress. The more details you add the richer insights the AI Weekly Plan Advisor will provide!"),
                     "url": st.column_config.LinkColumn("Job Link", help="Click to open the job posting"),
                 },
                 key="tracker_editor"
             )
-
-            # Ticked rows drive "Refresh posting status"; the column itself is never saved.
-            selected_ids = selected_job_ids(edited_df.to_dict(orient="records"))
-            edited_df = edited_df.drop(columns=["check"])
-
-            if st.button("🔄 Refresh posting status", disabled=not (jobspipe_key and selected_ids),
-                         help="Asks JobsPipe whether each ticked job is still open. "
-                              "\"Closed\" means the posting was confirmed taken down; \"May be closed\" means it hasn't been seen for a while. "
-                              "Tick jobs in the Check column first; jobs you added by hand can't be checked."):
-                try:
-                    with st.spinner("Checking your postings..."):
-                        checked = refresh_posting_statuses(st.session_state.tracker_data, jobspipe_key, selected_ids)
-                    save_tracker(st.session_state.tracker_data)
-                    st.session_state.tracker_original = json.loads(json.dumps(st.session_state.tracker_data))
-                    st.toast(f"Checked {checked} posting(s).", icon="🔄")
-                    st.rerun()
-                except requests.exceptions.RequestException as e:
-                    print(f"❌ JobsPipe status refresh failed: {e}")
-                    st.error("⚠️ Couldn't check posting status right now. Please try again later.")
 
             # Convert DataFrame to records
             raw_records = edited_df.to_dict(orient="records")
@@ -1983,3 +1984,6 @@ with tab_config:
                     st.caption("⚠️ You have unsaved changes in the prompts above.")
                 else:
                     st.caption("✓ All changes saved.")
+
+
+
