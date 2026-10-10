@@ -17,13 +17,13 @@ c) You can select a resume from among **several of your resumes**. Once a resume
 
 d) Choose a job in the results, then use the **Resume Tailor** to automatically customize and draft your chosen resume to more closely align with that job. The tailored resume will also show knowledge and experience gaps to address before you submit it for an open position.
 
-e) The **Job Application Tracker** shows your overall job hunting status at a glance. It tracks jobs applied over weeks/months in the past. Jobs tracked can be those found using the AI Job Search Center or jobs found and applied **outside of this app**, like a former co-worker mentioned a job opening to you. 
+e) The **Job Application Tracker** shows your overall job hunting status at a glance. It tracks jobs applied over weeks/months in the past. Jobs tracked can be those found using the AI Job Search Center or you jobs found and applied **outside of this app**, like a former co-worker mentioned a job opening to you. 
 
-f) Get job hunting advice from the **Weekly Plan Advisor**. The Advisor analyzes YOUR notes in the Job Application Tracker and additional results to bridge the gap between your historical job search patterns and upcoming goals to spot misalignments and suggest improvements. One example of misalignment: you chose to submit 20 job applications this week when you have 7 overdue, warm follow-ups from last week that are pending.
+f) Get job hunting advice from the **Weekly Plan Advisor**. The Advisor analyzes **your notes** in the Job Application Tracker and additional results to bridge the gap between your historical job search patterns and upcoming goals to spot misalignments and suggest improvements. One example of misalignment: you chose to submit 20 job applications this week when you have 7 overdue, warm follow-ups from last week that are pending.
 
 g) Use the **System Configuration Editor** to easily update each of the AI prompts used by this app to more closely meet your needs. Also, adjust the  temperature\creativity AI uses in its job matches and detailed responses.
 
-h) AI Job Search Center is meant to be **quick, inexpensive, and run locally** on your machine. You keep your data (except for data passed in API calls). **Gamification* has been implemented through granular progress indicators, supportive messaging, and celebration for each completed weekly job search plan!
+h) AI Job Search Center is meant to be **quick, inexpensive, and run locally** on your machine. You keep your data (except for data passed in API calls). **Gamification** has been implemented through granular progress indicators, supportive messaging, and a celebration for each completed weekly job search plan!
 
 **Why did I make this app available on Github?** 
 
@@ -102,20 +102,21 @@ Add your JobsPipe API and Gemini API keys on the left.
 
 Go to the Job Search Plan tab, choose the start and end dates for your weekly job search. Also, choose the job hunting tasks you want to do that week along with a goal for each (ex: Job Applications, 6 job applications, etc.)
 
-Note the help "?" bubble next to each job hunting task will give more info.
+Note the help "?" bubble is used throughout the app to give you contextual information.
+
+<img width="842" height="717" alt="AI_Job_Search_Center_Create_Job_Search_Plan" src="https://github.com/user-attachments/assets/ca97888c-a327-49d1-a68d-8944b6137366" />
 
 When done, choose the "Launch weekly plan" button.
 
 Log your progress on the Active Job Search Dashboard. Under the tab "Job Search & Resume Tailor", any positions that you apply for (ex: "Did you apply for this position?", if you choose "YES") will **automatically increment** the number of Applications in the Active Job Search Dashboard (if you previously created an active job search and the "Applications" task was added for that week). 
-
-<img width="842" height="717" alt="AI_Job_Search_Center_Create_Job_Search_Plan" src="https://github.com/user-attachments/assets/ca97888c-a327-49d1-a68d-8944b6137366" />
-
 
 ### Job Search Plan --> Weekly Plan Advisor
 
 After using the AI Job Search Center for a few weeks and adding notes to the Job Application Tracker Notes column, the app has more context to give you suggestions on your overall job hunting approach. In the Job Search Plan tab - Weekly Plan Advisor, simply choose "Analyze Application Tracker & Get Advice" and it will pass your job application tracker and current weekly plan to AI to analyze. The results will come after the header "Strategic Job Search Insights as of YYYY-MM-DD..."
 
 The Weekly Plan Advisor results are saved and available across sessions until you choose to run it again, which is why the last run date is provided.
+<img width="1405" height="362" alt="Blog_AI_Job_Search_Center_LinkedIn_WeeklyPlanAdvisor" src="https://github.com/user-attachments/assets/52186b48-a441-42cb-89b0-0865d48e07b7" />
+
 
 ### Job Search & Resume Tailor
 
@@ -125,9 +126,9 @@ The resume can be in .PDF, .DOCX or .TXT formats. You may have several resumes f
 
 **Note:** The resume you choose here will be sent to Gemini. It's suggested to **remove any personally identifiable information (PII)** before uploading it (ex: name, email, Linked In URL, phone number, etc.).
 
-To try this feature, use the sample resume in .\resume\Sample_resume_my_Program_Mgt_example_v3.txt
+To try this feature, use one of the sample resumes in .\resume\
 
-An example of the Resume Tailor results using the sample resume above can be found at: .\output\Sample_Tailored_Resume_Output.txt. Note the critique sections at the top, bottom and the "[UPDATED]" text to show which sections AI updated.
+An example of the Resume Tailor results using the sample resume above can be found at: .\output\Sample_Tailored_Resume_Output.txt. In that sample output resume, note the critique sections at the top, bottom and the "[UPDATED]" text to show which sections AI updated.
 
 2. Build Your Job Search. 
 
@@ -135,7 +136,7 @@ You may be pursuing **several different job titles**, thus a different job searc
 
 Fill in the Search Builder form: job titles, titles to exclude, countries, cities, seniority, work arrangement, visa sponsorship, minimum salary, how recent the postings should be and how many jobs to fetch. No YAML editing needed.
 
-To reuse a search, type a name under "Save this search as" and choose "Save search". Next time, pick it in "Start from a saved search" (ex: I uploaded a program manager resume, so choose the "program manager" search). The presets in .\config\query.yaml appear there too. To update a saved search, pick it, change any field and choose "Save search" again; the button stays greyed out until something has changed.
+To reuse a search, type a name under "Save this search as" and choose "Save search". Next time, choose that saved search from the "Start from a saved search" drop-down (ex: I uploaded a program manager resume, so choose the "program manager" search). The presets in .\config\query.yaml appear there too. To update a saved search, choose it, change any field and choose "Save search", the button stays greyed out until something has changed in the jobs search options.
 
 **Visa sponsorship tip:** very few postings mention sponsorship at all. "Hide jobs that rule out sponsorship" drops the ones that say "no sponsorship" or "citizens / PR only" and keeps the rest, which is usually what you want.
 
@@ -143,17 +144,20 @@ Optional quality filters under the form:
 * **English-language postings only**: handy when searching abroad. A posting written in English can still ask for the local language, so read the description.
 * **Hide recruitment agencies**: apply to employers directly.
 * **Hide likely ghost jobs**: leaves out postings JobsPipe rates as likely ghost jobs (unrated postings are kept).
-* **Only jobs new since my last run of this search**: after you run a saved search once, this shows only postings JobsPipe found since then, so you don't review the same jobs every week.
+* **Only new jobs since my last run of this search**: after you run a saved search once, this shows only postings JobsPipe found since then, so you don't review the same jobs every week.
 
 You can choose the expand box "View JobsPipe request" to view the exact JobsPipe query. 
 
-Lastly, choose the shiny red button "Find Job Matches with AI". This will call JobsPipe to get the jobs in the selected query. Next the app will send the job results along with the chosen resume to Gemini to compare. Gemini will return the Match Score %, Reasoning, Key Matching Skills and Missing Skills, which are all displayed in the UI. 
+<img width="884" height="906" alt="Blog_AI_Job_Search_Center_Build_Job_Search_v2" src="https://github.com/user-attachments/assets/35bb482b-06f1-4874-b263-9bdde3e9ae3d" />
+
+Lastly, choose the shiny red button "Find Job Matches with AI". This will call JobsPipe to get the jobs in the selected query. Next the app will send the job results **along with your chosen resume to Gemini** to compare. Gemini will return the Match Score %, Reasoning, Key Matching Skills and Missing Skills, which are all displayed in the UI. 
 
 ### Job Search & Resume Tailor --> What skills does this market ask for?
 
-Above your matches, "Measure skill demand" counts how many postings in your whole search ask for each skill found in your results (ex: "Account Management: 25% of postings"). Skills with a high share that are missing from your resume are worth learning or making more visible. It uses about one JobsPipe credit per skill.
+Above your job matches, "Measure skill demand" counts how many postings in your whole search ask for each skill found in your results (ex: "Account Management: 25% of postings"). Skills with a high share that are missing from your resume are worth learning or making more visible. It uses about one JobsPipe credit per skill.
 
 Each matched job also shows quick facts when JobsPipe has them: salary, number of applicants (LinkedIn postings), a likely-ghost-job warning, whether a recruitment agency posted it, and how long since the posting was last seen live.
+<img width="1444" height="673" alt="Blog_AI_Job_Search_Center_Market_Skills" src="https://github.com/user-attachments/assets/6607e580-2c15-402c-ae9b-0c58e27ba517" />
 
 ### Job Search & Resume Tailor --> Expand one job --> Key Matching Skills
 
@@ -167,7 +171,7 @@ Within each matching job, there's a button that says "Generate Tailored Resume".
 
 ### Job Search & Resume Tailor --> Expand one job --> Tailor My PDF Resume
 
-If your active resume is a PDF, there's also a "Tailor My PDF Resume" button. Instead of a text draft, it rewrites a few bullets (and your summary) **inside your own PDF**, keeping its design: layout, fonts, colors and photo stay exactly as they were. You get a preview, a download button and a "What changed" list showing each original bullet next to its rewrite.
+If your active resume is a PDF, there's also "Tailor My PDF Resume". Instead of a text draft resume, it rewrites a few bullets (and your summary) **inside your own PDF**, keeping its design: layout, fonts, colors and photo stay exactly as they were. You get a preview, a download button and a "What changed" list showing each original bullet next to its rewrite.
 
 Rewrites keep every number and specific from the original, never exceed the space the original bullet had, and are skipped (and listed) when they don't fit. **Always VERIFY every change** before you send the resume. The prompt is editable in the System Configuration Editor.
 
@@ -177,11 +181,11 @@ This works for PDFs with real text (exported from Canva, Word or Google Docs), n
 
 **"Did you apply for this position?"** --> **"No"**, just marks the status as "Skipped" with no further action needed by the user. You can **undo** this action by choosing "Yes".
 
-<img width="1052" height="552" alt="AI_Job_Search_Center_FindJobMatches" src="https://github.com/user-attachments/assets/70e8b3dc-b8a1-4de0-a34c-9c2b8ef62087" />
+<img width="820" height="796" float: left alt="Blog_AI_Job_Search_Center_LinkedIn_JobMatchResults_v2" src="https://github.com/user-attachments/assets/feaf87ee-3361-49ef-aabd-2a236cdf40e0" />
 
 
 ### Job Application Tracker
-This shows your overall job hunting status at a glance. It's a table to view and edit the jobs you applied for, add your notes and change the application status.
+The Tracker shows your overall job hunting status at a glance. It's a table to view and edit the jobs you applied for, add your notes and change the application status you decide.
 
 **All of your job applications** can be tracked here. This table includes jobs you found via this app and chose "Did you apply for this position?" --> "Yes". Also, this table supports manually adding jobs you found and applied for **outside** of this app, like a former co-worker mentioned a job that you applied for. 
 
@@ -189,19 +193,18 @@ Based on the Follow-up Date you enter in this table, there will be 2 states as t
 * Follow-ups that are past due or due today.
 * Follow-ups to be completed tomorrow.
 
-The **Filter Status** shows the statuses **you create**. I didn't want to force a job hunting process on my users, so I let you decide what follow-up statuses to create. It's suggested to create a few, distinct statuses as possible, and make them meaningful :-) 
+The **Filter Status** shows the statuses **you create**. I didn't want to force a job hunting process on my users, so I let **you decide** what follow-up statuses to create. It's suggested to create a few, distinct statuses as possible, and make them meaningful :-) 
 
 Note, you can hover on the table to get a little menu in the top right. Also, choosing a row in the far left column will enable deletion.
-
-<img width="907" height="592" alt="AI_Job_Search_Center_JobApplicationTrackerTable" src="https://github.com/user-attachments/assets/c6eb6ea2-bfc6-4289-96a0-0e70c974da7f" />
+<img width="879" height="512" alt="Blog_AI_Job_Search_Center_LinkedIn_JobApplicationTracker_v2a" src="https://github.com/user-attachments/assets/2f927ec6-481d-4b73-98f1-d260898179a6" />
 
 After making changes to the table, choose the "Save Tracker Changes" button under this table.
 
-**Is the job still open?** Tick the jobs you want to check in the **Check** column, then choose "Refresh posting status" below the table. JobsPipe is asked about those jobs only, so you can skip old applications and ones you already heard back about. The **Posting** column then shows *Open*, *Closed* (the posting was confirmed taken down) or *May be closed* (not seen live for a while), with the date it was last seen. Jobs you added by hand have no JobsPipe id and can't be checked.
-
+**Is the job still open?** In the **Check** column, select the jobs you want see if they are still open then choose "Refresh posting status" below the table. JobsPipe is only asked for the status of those selected jobs, so you can skip old applications and jobs you already heard back about. The **Posting** column then shows *Open*, *Closed* (the posting was confirmed taken down) or *May be closed* (not seen live for a while), with the date it was last seen. Jobs you added by hand have no JobsPipe id and can't be checked.
+<img width="833" height="528" alt="Blog_AI_Job_Search_Center_Refresh_Posting_Status_v2" src="https://github.com/user-attachments/assets/611f1c0d-72f0-495a-9568-61d0a95215c4" />
 
 ### System Configuration Editor
-This allows you to modify AI model settings and system prompts live without touching the code. For convenience, all changes are saved in the .yaml files mentioned on this screen.
+The Editor allows you to modify AI model settings and system prompts live without touching the code. For convenience, all changes are saved in the .yaml files mentioned on this screen.
 
 Note the "?" bubble explains what each option is for and how to set the range.
 
@@ -224,7 +227,7 @@ AI_job_search_center\
 ├── .\output\skipped_jobs.json           # Based on job matching results, if the user chooses NOT to pursue a job, that job ID is recorded here.
 ├── .\output\tracker_db.json             # Stores the Job Application Tracker table.
 ├── .\output\weekly_plan.json            # Stores the Job Search Plan -> Active Job Search Dashboard.
-├── .\output\Sample_Tailored_Resume_Output.txt            # An example of the Resume Tailor results previously run against the sample PgM resume.
+├── .\output\Sample_Tailored_Resume_Output.txt         # An example of the Resume Tailor results previously run against the sample PgM resume.
 ├── .\resume\Sample_resume_Program_Mgt_example_v3.txt  # Sample PgM resume to try.
 ├── .\output\Tailored_Resume_<company>.pdf  # PDF resumes tailored with "Tailor My PDF Resume".
 ├── .\uploads                            # Any resumes you upload, saved_queries.yaml with the searches you save, and search_history.json with when each was last run.
@@ -238,7 +241,7 @@ AI_job_search_center\
 # Features you might consider adding
 
 * Automatic cover letter generation. This will entail at least: a new prompt added to the System Configuration Editor, save that prompt to prompts.yaml, a "Generate cover-letter" button probably near the "Generate Tailored Resume" button and maybe other changes.
-* The JobsPipe jobs.json query response has a wealth of info that could be easily added to the results, such as whether the job is remote or hybrid, salary range, clickable company domain to see if that job still exists on the corporate website, list of job benefits, etc.
+* The JobsPipe jobs.json query response has a wealth of info that could be easily added to the results, such as a clickable company domain to see if that job still exists on the corporate website, list of job benefits, etc.
 * Interview prep questions specific to the job and company. This will entail at least: a new prompt added to the System Configuration Editor, save that prompt to prompts.yaml, a "Generate interview questions" button probably near the "Generate Tailored Resume" button and maybe other changes.
 
 # Thanks!
