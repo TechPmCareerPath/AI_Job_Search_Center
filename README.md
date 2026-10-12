@@ -201,7 +201,8 @@ Note, you can hover on the table to get a little menu in the top right. Also, ch
 After making changes to the table, choose the "Save Tracker Changes" button under this table.
 
 **Is the job still open?** In the **Check** column, select the jobs you want see if they are still open then choose "Refresh posting status" below the table. JobsPipe is only asked for the status of those selected jobs, so you can skip old applications and jobs you already heard back about. The **Posting** column then shows *Open*, *Closed* (the posting was confirmed taken down) or *May be closed* (not seen live for a while), with the date it was last seen. Jobs you added by hand have no JobsPipe id and can't be checked.
-<img width="833" height="528" alt="Blog_AI_Job_Search_Center_Refresh_Posting_Status_v2" src="https://github.com/user-attachments/assets/611f1c0d-72f0-495a-9568-61d0a95215c4" />
+<img width="833" height="528" alt="Blog_AI_Job_Search_Center_Refresh_Posting_Status_v2" src="https://github.com/user-attachments/assets/43ec6cbb-b6b5-47ee-b213-a60a5e69afdc" />
+
 
 ### System Configuration Editor
 The Editor allows you to modify AI model settings and system prompts live without touching the code. For convenience, all changes are saved in the .yaml files mentioned on this screen.
