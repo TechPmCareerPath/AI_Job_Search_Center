@@ -1740,6 +1740,7 @@ with tab_recruiter:
             if "posting_status" not in df.columns:
                 df["posting_status"] = ""
             # Tick boxes for "Refresh posting status". Shown in the table only, never saved.
+            df = df.drop(columns=["check"], errors="ignore")
             df.insert(0, "check", False)
 
             # Ensure followup_date exists in DataFrame even if legacy records lack it
@@ -1805,7 +1806,7 @@ with tab_recruiter:
             if st.button("🔄 Refresh posting status", disabled=not (jobspipe_key and selected_ids),
                          help="Asks JobsPipe whether each ticked job is still open. "
                               "\"Closed\" means the posting was confirmed taken down; \"May be closed\" means it hasn't been seen for a while. "
-                              "Tick jobs in the Check column first; jobs you added by hand can't be checked."):
+                              "Tick jobs in the Check column first and save any other table edits before refreshing; jobs you added by hand can't be checked."):
                 try:
                     with st.spinner("Checking your postings..."):
                         checked = refresh_posting_statuses(st.session_state.tracker_data, jobspipe_key, selected_ids)
