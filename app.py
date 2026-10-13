@@ -547,7 +547,7 @@ def refresh_posting_statuses(tracker_data: list, jobs_api_key: str, job_ids: lis
     statuses = posting_statuses(rows, job_ids)
     for item in tracker_data:
         found = statuses.get(str(item.get("job_id")))
-        if found and str(item.get("job_id")) in job_ids:
+        if found:
             last_seen = f" · last seen {found['last_seen']}" if found["last_seen"] and found["status"] != OPEN else ""
             item["posting_status"] = found["status"] + last_seen
     return len(job_ids)

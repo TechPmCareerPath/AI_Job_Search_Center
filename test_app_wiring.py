@@ -35,6 +35,8 @@ def test_tracker_has_a_check_column_feeding_the_refresh_button():
 
 def test_job_links_stay_sanitised():
     # Craig's 2026-10-10 change: plain markdown link after a scheme + hostname check, no raw HTML.
-    assert "urlsplit(source_url)" in APP
-    assert "[Open job posting](" in APP
-    assert "unsafe_allow_html=True" not in APP.split("if source_url:")[1].split("key_skills")[0]
+    start = APP.index("if source_url:")
+    link_block = APP[start:APP.index("key_skills", start)]
+    assert "urlsplit(source_url)" in link_block
+    assert "[Open job posting](" in link_block
+    assert "unsafe_allow_html=True" not in link_block
